@@ -72,7 +72,7 @@
     <div style="display:flex;flex-wrap:wrap;gap:5px;">
       <button onclick="hwSetState('running')"   id="hw-st-running"   class="hw-pill">Running</button>
       <button onclick="hwSetState('completed')" id="hw-st-completed" class="hw-pill">Completed</button>
-      <button onclick="hwSetState('failed')"    id="hw-st-failed"    class="hw-pill">Failed</button>
+      <button onclick="hwSetState('failed')"    id="hw-st-failed"    class="hw-pill">Error</button>
       <button onclick="hwSetState('queued')"    id="hw-st-queued"    class="hw-pill">Queued</button>
     </div>
   </div>
@@ -491,7 +491,7 @@
   var STATUS = {
     running:   { txt:'Running',   tc:'text-blue-600',  bc:'bg-blue-600'  },
     completed: { txt:'Completed', tc:'text-green-600', bc:'bg-green-600' },
-    failed:    { txt:'Failed',    tc:'text-red-600',   bc:'bg-red-600'   },
+    failed:    { txt:'Error',     tc:'text-red-600',   bc:'bg-red-600'   },
     queued:    { txt:'Queued',    tc:'text-gray-500',  bc:'bg-gray-400'  }
   };
   function setHeader(name) {
