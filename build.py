@@ -294,11 +294,29 @@ SCRIPT = '''
   function mean(a) { return a.reduce(function(s,x){return s+x;},0) / a.length; }
   function peak(a) { return Math.max.apply(null, a); }
 
-  function levelColor(pctOfScale, forceRed) {
-    if (forceRed)         return '#ef4444';
-    if (pctOfScale >= 95) return '#ef4444';
-    if (pctOfScale >= 80) return '#f59e0b';
-    return '#6366f1';
+  // Per-metric colour semantics. Colour escalates only toward a condition
+  // the user should ACT on — which differs by metric:
+  //   GPU memory : high = OOM risk  -> ceiling scale (high is bad)
+  //   GPU util   : high = the goal  -> inverted (LOW avg = wasted spend)
+  //   CPU util   : relational tell  -> never an alarm (neutral)
+  var INDIGO = '#6366f1', AMBER = '#f59e0b', RED = '#ef4444';
+  function metricColor(metric, value, name) {
+    var pct = value / META[metric].scale * 100;
+    if (metric === 'gpu-mem') {
+      if (name === 'failed') return RED;        // OOM prime suspect on a crash
+      if (pct >= 95) return RED;                // at the ceiling
+      if (pct >= 80) return AMBER;              // approaching the ceiling
+      return INDIGO;
+    }
+    if (metric === 'gpu-util') {
+      // Instantaneous values dip on every sawtooth trough — only the
+      // *average* (completed/failed) carries the "idle GPU" signal.
+      if (name === 'running' || name === 'queued') return INDIGO;
+      if (pct < 15) return RED;                 // GPU mostly idle = wasted spend
+      if (pct < 40) return AMBER;               // under-utilised
+      return INDIGO;                            // healthy / well-saturated
+    }
+    return INDIGO;                              // cpu-util: never alarmed
   }
 
   // ── Mock series generators (plausible shapes, not real data) ──────────────
@@ -428,14 +446,13 @@ SCRIPT = '''
       } else if (name === 'running') {
         // Live: instantaneous reading, no aggregate label.
         var cur = s[s.length - 1];
-        color = levelColor(cur / meta.scale * 100, false);
+        color = metricColor(m, cur, 'running');
         valText = meta.fmt(cur); pct = cur / meta.scale * 100;
         sparkMode = 'LIVE';
       } else {
         // completed / failed: the aggregate that matters for this metric.
         var stat = (meta.agg === 'PEAK') ? peak(s) : mean(s);
-        var red  = (name === 'failed' && m === 'gpu-mem');   // OOM-class signal
-        color = levelColor(stat / meta.scale * 100, red);
+        color = metricColor(m, stat, name);
         aggText = meta.agg;
         valText = meta.fmt(stat); pct = stat / meta.scale * 100;
         sparkMode = meta.agg;
