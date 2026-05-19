@@ -190,7 +190,7 @@ V2 = f'''
         {badges("hw-v2")}
       </h2>
     </div>
-    <div class="bg-white dark:bg-gray-950" style="padding:16px 20px;">
+    <div class="bg-gray-50 dark:bg-gray-900" style="padding:16px 20px;">
       <div style="display:flex;flex-wrap:wrap;align-items:center;gap:32px;">
         {gauges("hw-v2", "bar")}
       </div>
