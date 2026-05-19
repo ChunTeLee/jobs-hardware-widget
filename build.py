@@ -89,6 +89,17 @@ main_html, n = re.subn(
 _scrub += n
 print(f"  Scrubbed {_scrub} private reference(s)")
 
+# ── 3c. Add hooks so the job-state toggle can drive the header Status ─────────
+main_html, n1 = re.subn(
+    r'<div class="h-9 w-1 flex-none rounded-r-full bg-green-600"></div>',
+    '<div id="hw-status-bar" class="h-9 w-1 flex-none rounded-r-full bg-green-600"></div>',
+    main_html, count=1)
+main_html, n2 = re.subn(
+    r'(<p class="text-xs">Status</p>\s*<div) (class="flex items-center gap-1 text-green-600">)',
+    r'\1 id="hw-status-label" \2',
+    main_html, count=1)
+print(f"  Header status hooks: bar={n1} label={n2}")
+
 # ── 4. Patch CSS: rewrite relative url() to absolute ─────────────────────────
 print("Patching CSS url() references...")
 with open(CSS_FILE, encoding="utf-8", errors="replace") as f:
@@ -246,6 +257,8 @@ CONTROL = '''
 STYLE = '''
 <style>
   @keyframes hwPing { 75%,100% { transform:scale(1.8); opacity:0; } }
+  @keyframes hwSpin { to { transform:rotate(360deg); } }
+  .hw-spin { animation:hwSpin 1s linear infinite; transform-origin:50% 50%; }
   .hw-seg {
     padding:6px 6px; border:none; border-radius:6px; cursor:pointer;
     font-size:11px; white-space:nowrap; background:transparent; color:#8b949e;
@@ -476,8 +489,39 @@ SCRIPT = '''
     PREFIXES.forEach(function (p) { paint(p, 'running'); });
   }
 
+  // ── Header Status cell — driven by the same job-state toggle ──────────────
+  function svgIcon(inner, cls) {
+    return '<svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" ' +
+      'focusable="false" role="img" width="1em" height="1em" ' +
+      'preserveAspectRatio="xMidYMid meet" viewBox="0 0 32 32"' +
+      (cls ? ' class="' + cls + '"' : '') + '>' + inner + '</svg>';
+  }
+  var ICON = {
+    completed: svgIcon('<path d="M13 24l-9-9l1.414-1.414L13 21.171L26.586 7.586L28 9L13 24z" fill="currentColor"></path>'),
+    failed:    svgIcon('<path d="M24 9.4L22.6 8L16 14.6L9.4 8L8 9.4L14.6 16L8 22.6L9.4 24L16 17.4L22.6 24L24 22.6L17.4 16L24 9.4z" fill="currentColor"></path>'),
+    queued:    svgIcon('<path d="M16 2A14 14 0 1 0 30 16 14 14 0 0 0 16 2zm0 26A12 12 0 1 1 28 16 12 12 0 0 1 16 28z" fill="currentColor"></path><path d="M16.5 9H15v8l6.1 3.5.8-1.3-5.4-3.1z" fill="currentColor"></path>'),
+    running:   svgIcon('<path d="M16 3a13 13 0 1 0 13 13h-2.6A10.4 10.4 0 1 1 16 5.6z" fill="currentColor"></path>', 'hw-spin')
+  };
+  var STATUS = {
+    running:   { txt:'Running',   tc:'text-blue-600',  bc:'bg-blue-600'  },
+    completed: { txt:'Completed', tc:'text-green-600', bc:'bg-green-600' },
+    failed:    { txt:'Failed',    tc:'text-red-600',   bc:'bg-red-600'   },
+    queued:    { txt:'Queued',    tc:'text-gray-500',  bc:'bg-gray-400'  }
+  };
+  function setHeader(name) {
+    var s = STATUS[name]; if (!s) return;
+    var bar = document.getElementById('hw-status-bar');
+    var lbl = document.getElementById('hw-status-label');
+    if (bar) bar.className = 'h-9 w-1 flex-none rounded-r-full ' + s.bc;
+    if (lbl) {
+      lbl.className = 'flex items-center gap-1 ' + s.tc;
+      lbl.innerHTML = ICON[name] + ' ' + s.txt;
+    }
+  }
+
   function applyState(name) {
     currentState = name;
+    setHeader(name);
     if (liveTimer) { clearInterval(liveTimer); liveTimer = null; }
     PREFIXES.forEach(function (p) { paint(p, name); });
     if (name === 'running') { liveTimer = setInterval(tick, 1800); }
