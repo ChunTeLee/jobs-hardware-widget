@@ -411,14 +411,12 @@ STYLE = '''
      right edge; same anchor as expanded so on expand the widget grows
      leftward INTO logs without the right edge shifting. */
   @media (min-width:1536px) {
+    /* On 4K-class, JS measures the natural collapsed width once on
+       attach and sets BOTH `width` and `right` inline so the gap from
+       logs is always 12px AND width is a length value (animatable).
+       These fallbacks are used until JS runs. */
     #hw-v3-pill.hw-v3-collapsed {
-      right:-160px;
-      left:auto;
-      /* No fixed width — let the pill hug its content horizontally.
-         Right edge stays anchored 160px past logs; left edge is wherever
-         the widest content (e.g. 'MEM  PEAK 43.0 / 48 GB') ends. */
-      width:max-content;
-      padding:10px 12px;
+      right:-140px; left:auto; width:128px; padding:10px 12px;
     }
     .hw-v3-collapsed .hw-v3-head { display:flex; align-items:center; gap:8px; justify-content:space-between; }
     .hw-v3-collapsed .hw-v3-rows { flex-direction:column; align-items:stretch; gap:10px; }
@@ -430,9 +428,8 @@ STYLE = '''
   }
   @media (min-width:1536px) {
     #hw-v3-pill.hw-v3-expanded {
-      /* Same right-anchor as collapsed (right:-160). No shift. Width grows
-         leftward, pulling the left edge INTO the logs container (overlay). */
-      right:-160px;
+      /* Same right anchor as collapsed (JS-set inline) so the right edge
+         doesn't shift; only width grows leftward INTO logs (overlay). */
       left:auto;
       width:340px;
     }
@@ -744,6 +741,30 @@ SCRIPT = '''
 
   window.hwSetState = function (n) { applyState(n); };
 
+  // 4K-class only: measure the pill's natural collapsed width and lock
+  // it (plus the right anchor) inline so:
+  //   - the gap between logs and the pill is always 12px regardless of
+  //     content width;
+  //   - width is a length value, so width transitions animate.
+  function lockLgAnchor(pill) {
+    if (!matchMedia('(min-width: 1536px)').matches) {
+      pill.style.right = '';
+      pill.style.width = '';
+      return;
+    }
+    var prevTrans = pill.style.transition;
+    pill.style.transition = 'none';
+    pill.style.right = '';   // clear any prior inline so we measure cleanly
+    pill.style.width = 'max-content';
+    void pill.offsetWidth;   // force layout
+    var w = pill.offsetWidth;
+    pill.dataset.collapsedW = w;
+    pill.style.width = w + 'px';
+    pill.style.right = -(12 + w) + 'px';
+    void pill.offsetWidth;
+    pill.style.transition = prevTrans;
+  }
+
   // V3 pill is a flex child of #hw-v3-layout (which wraps the logs card).
   // Move it into the layout on activate so it participates in real layout.
   function attachV3() {
@@ -753,16 +774,23 @@ SCRIPT = '''
     if (!pill || !layout) return;
     if (pill.parentElement !== layout) layout.insertBefore(pill, layout.firstChild);
     if (spacer) spacer.style.display = '';
+    // Ensure collapsed state for the measurement
+    pill.classList.add('hw-v3-collapsed');
+    pill.classList.remove('hw-v3-expanded');
+    v3Expanded = false;
+    lockLgAnchor(pill);
   }
   function detachV3() {
     var pill   = document.getElementById('hw-v3-pill');
     var wrap   = document.getElementById('hw-v3-wrap');
     var spacer = document.getElementById('hw-v3-spacer');
     if (!pill || !wrap) return;
-    // Reset to collapsed before parking, so re-attaching starts fresh.
     pill.classList.remove('hw-v3-expanded');
     pill.classList.add('hw-v3-collapsed');
     v3Expanded = false;
+    pill.style.right = '';
+    pill.style.width = '';
+    pill.style.height = '';
     if (pill.parentElement !== wrap) wrap.appendChild(pill);
     if (spacer) spacer.style.display = 'none';
   }
@@ -777,7 +805,12 @@ SCRIPT = '''
     var btn  = document.getElementById('hw-v3-toggle');
     if (!pill) return;
 
+    var isLg = matchMedia('(min-width: 1536px)').matches;
     var startH = pill.offsetHeight;
+    var startW = pill.offsetWidth;
+
+    // Remember collapsed width on lg so we can animate back to it later.
+    if (isLg && !v3Expanded) pill.dataset.collapsedW = startW;
 
     v3Expanded = !v3Expanded;
     pill.classList.toggle('hw-v3-expanded', v3Expanded);
@@ -785,20 +818,33 @@ SCRIPT = '''
     if (btn) btn.title = v3Expanded ? 'Collapse' : 'Expand';
     applyState(currentState);
 
-    // Measure the new natural height with the new state applied.
+    // Measure target dimensions with the new state applied.
     pill.style.height = 'auto';
+    pill.style.width  = '';
     var endH = pill.offsetHeight;
+    var endW = isLg
+      ? (v3Expanded ? 340 : (+pill.dataset.collapsedW || pill.offsetWidth))
+      : pill.offsetWidth;
 
-    // Lock to start height, force reflow, then animate to end height.
+    // Lock back to START dimensions (no transition fires yet — same values).
     pill.style.height = startH + 'px';
+    if (isLg) pill.style.width = startW + 'px';
     void pill.offsetHeight;
-    pill.style.height = endH + 'px';
 
-    // After the height transition completes, clear the inline height
-    // so the pill goes back to natural content sizing.
+    // On the next animation frame, set END dimensions. The browser sees a
+    // length→length change and runs the CSS transition smoothly.
+    requestAnimationFrame(function () {
+      pill.style.height = endH + 'px';
+      if (isLg) pill.style.width = endW + 'px';
+    });
+
+    // Cleanup after transition: clear inline height so the pill returns to
+    // content-sized height (no empty space). On lg, clear inline width too
+    // — the CSS rule for the active state will hold the right value.
     var cleanup = function (e) {
-      if (e.propertyName !== 'height' || e.target !== pill) return;
+      if (e.target !== pill || e.propertyName !== 'height') return;
       pill.style.height = '';
+      pill.style.width  = '';
       pill.removeEventListener('transitionend', cleanup);
     };
     pill.addEventListener('transitionend', cleanup);
