@@ -130,10 +130,18 @@ if _card_open == -1 or _card_end == -1:
     sys.exit(1)
 main_html = (main_html[:_card_open]
              + '<div id="hw-v3-layout" class="hw-v3-layout">'
+             + '<div id="hw-v3-spacer" class="hw-v3-spacer" style="display:none"></div>'
              + main_html[_card_open:_card_end]
              + '</div>'
              + main_html[_card_end:])
-print(f"  Logs card hooks: card={c1} wrapped-in-v3-layout=1")
+
+# Page container has overflow-hidden which would clip the lg pill that
+# sits in the margin to the right of logs. Add an inline style override.
+main_html, c_over = re.subn(
+    r'<div class="container flex flex-1 flex-col gap-4 overflow-hidden py-4">',
+    '<div class="container flex flex-1 flex-col gap-4 overflow-hidden py-4" style="overflow:visible">',
+    main_html, count=1)
+print(f"  Logs card hooks: card={c1} wrapped-in-v3-layout=1 page-overflow={c_over}")
 
 # ── 4. Patch CSS: rewrite relative url() to absolute ─────────────────────────
 print("Patching CSS url() references...")
@@ -342,24 +350,26 @@ STYLE = '''
   #hw-state-tier.open { max-height:200px; opacity:1; }
 
   /* ── V3 responsive pill (anchored to the log container) ───────────────── */
-  /* The pill lives inside #hw-v3-layout which wraps the logs card.        */
-  /* Layout: column (widget above logs) on sm/md, row (widget right of    */
-  /* logs) on lg. Pill is position:relative when collapsed (real layout   */
-  /* space) and position:absolute when expanded (overlay, logs unchanged). */
+  /* The pill is ALWAYS position:absolute against #hw-v3-layout, so it     */
+  /* never steals horizontal space from the logs container. On sm/md a    */
+  /* spacer reserves vertical room above the logs for the collapsed pill; */
+  /* expansion grows the pill over the top of logs (overlay) without      */
+  /* shifting the logs because the spacer's height stays the same.        */
+  /* On lg the pill floats in the page margin to the right of logs, and  */
+  /* expanding pulls it back leftward to overlay the top-right of logs.   */
   .hw-v3-layout {
     display:flex; flex-direction:column; gap:8px;
     position:relative; flex:1 1 auto; min-height:0;
   }
-  /* DOM order is [pill, logs-card]; use `order` so the pill appears */
-  /* above on sm/md (col) and to the right on lg (row).               */
-  .hw-v3-layout > #hw-v3-pill   { order:0; }
-  .hw-v3-layout > #hw-logs-card { order:1; }
-  @media (min-width:1024px) {
-    .hw-v3-layout { flex-direction:row; gap:12px; align-items:flex-start; }
-    .hw-v3-layout > #hw-logs-card { flex:1 1 auto; min-width:0; }
-    .hw-v3-layout > #hw-v3-pill   { order:2; }
+  .hw-v3-spacer {
+    order:0; flex-shrink:0; width:100%; height:46px;
   }
+  @media (min-width:1024px) {
+    .hw-v3-spacer { display:none; }
+  }
+  .hw-v3-layout > #hw-logs-card { order:1; }
   #hw-v3-pill {
+    position:absolute; z-index:20; top:0; right:0;
     box-sizing:border-box;
     background:rgba(22,27,34,0.96); border:1px solid #30363d;
     border-radius:12px; padding:8px 14px;
@@ -367,10 +377,9 @@ STYLE = '''
     cursor:pointer; user-select:none;
     font-family:ui-sans-serif,system-ui,sans-serif;
     display:flex; flex-direction:column; gap:10px;
-    transition:width .3s cubic-bezier(0.4,0,0.2,1),
-               height .3s cubic-bezier(0.4,0,0.2,1),
-               padding .25s ease, top .25s ease, right .25s ease,
-               bottom .25s ease, left .25s ease;
+    transition:right .3s cubic-bezier(0.4,0,0.2,1),
+               width .3s cubic-bezier(0.4,0,0.2,1),
+               padding .25s ease;
   }
   /* COLLAPSED · sm (default) — full-width row above logs, horizontal */
   #hw-v3-pill.hw-v3-collapsed { width:100%; }
@@ -391,26 +400,26 @@ STYLE = '''
   .hw-v3-collapsed .hw-v3-spark { display:none; }
   /* COLLAPSED · md — horizontal, right-aligned, narrower */
   @media (min-width:768px) {
-    #hw-v3-pill.hw-v3-collapsed { width:auto; max-width:420px; align-self:flex-end; }
+    #hw-v3-pill.hw-v3-collapsed { width:420px; }
   }
-  /* COLLAPSED · lg — vertical, narrow, on the right of logs */
+  /* COLLAPSED · lg — vertical, narrow, FLOATS in the right page margin */
   @media (min-width:1024px) {
     #hw-v3-pill.hw-v3-collapsed {
-      width:148px; max-width:148px; align-self:stretch; padding:10px 12px;
+      right:-160px;       /* 148px width + ~12px gap, sits outside logs */
+      width:148px;
+      padding:10px 12px;
     }
     .hw-v3-collapsed .hw-v3-head { display:flex; align-items:center; justify-content:space-between; }
     .hw-v3-collapsed .hw-v3-rows { flex-direction:column; align-items:stretch; gap:10px; }
     .hw-v3-collapsed .hw-v3-row { flex-direction:row; justify-content:space-between; }
   }
-  /* EXPANDED — overlay; always vertical stack with sparklines */
+  /* EXPANDED — overlay; vertical stack with sparklines (logs unchanged) */
   #hw-v3-pill.hw-v3-expanded {
-    position:absolute; z-index:20;
-    top:0; left:0; right:0;
-    padding:12px 14px;
+    right:0; width:100%; padding:12px 14px;
   }
   @media (min-width:1024px) {
     #hw-v3-pill.hw-v3-expanded {
-      left:auto; right:0; width:340px;
+      right:0; width:340px;
     }
   }
   .hw-v3-expanded .hw-v3-head {
@@ -722,20 +731,24 @@ SCRIPT = '''
   // V3 pill is a flex child of #hw-v3-layout (which wraps the logs card).
   // Move it into the layout on activate so it participates in real layout.
   function attachV3() {
-    var pill = document.getElementById('hw-v3-pill');
+    var pill   = document.getElementById('hw-v3-pill');
     var layout = document.getElementById('hw-v3-layout');
+    var spacer = document.getElementById('hw-v3-spacer');
     if (!pill || !layout) return;
     if (pill.parentElement !== layout) layout.insertBefore(pill, layout.firstChild);
+    if (spacer) spacer.style.display = '';
   }
   function detachV3() {
-    var pill = document.getElementById('hw-v3-pill');
-    var wrap = document.getElementById('hw-v3-wrap');
+    var pill   = document.getElementById('hw-v3-pill');
+    var wrap   = document.getElementById('hw-v3-wrap');
+    var spacer = document.getElementById('hw-v3-spacer');
     if (!pill || !wrap) return;
     // Reset to collapsed before parking, so re-attaching starts fresh.
     pill.classList.remove('hw-v3-expanded');
     pill.classList.add('hw-v3-collapsed');
     v3Expanded = false;
     if (pill.parentElement !== wrap) wrap.appendChild(pill);
+    if (spacer) spacer.style.display = 'none';
   }
 
   window.hwToggleV3 = function (ev) {
