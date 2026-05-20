@@ -284,7 +284,7 @@ V3 = f'''
 # (secondary, collapsed until a version is chosen).
 CONTROL = '''
 <div id="hw-control"
-     style="position:fixed;top:14px;right:20px;z-index:9999;width:380px;
+     style="position:fixed;bottom:14px;right:20px;z-index:9999;width:380px;
             background:rgba(15,17,23,0.94);border:1px solid #30363d;
             border-radius:12px;padding:12px;backdrop-filter:blur(10px);
             box-shadow:0 8px 28px rgba(0,0,0,.45);
@@ -378,6 +378,7 @@ STYLE = '''
     font-family:ui-sans-serif,system-ui,sans-serif;
     display:flex; flex-direction:column; gap:10px;
     transition:right .3s cubic-bezier(0.4,0,0.2,1),
+               left  .3s cubic-bezier(0.4,0,0.2,1),
                width .3s cubic-bezier(0.4,0,0.2,1),
                padding .25s ease;
   }
@@ -402,10 +403,13 @@ STYLE = '''
   @media (min-width:768px) {
     #hw-v3-pill.hw-v3-collapsed { width:420px; }
   }
-  /* COLLAPSED · lg — vertical, narrow, FLOATS in the right page margin */
+  /* COLLAPSED · lg — vertical, narrow, FLOATS in the right page margin.
+     Anchored at top-LEFT (12px past the logs' right edge) so growth on
+     expand happens rightward into the margin — the widget never shifts. */
   @media (min-width:1024px) {
     #hw-v3-pill.hw-v3-collapsed {
-      right:-160px;       /* 148px width + ~12px gap, sits outside logs */
+      left:calc(100% + 12px);
+      right:auto;
       width:148px;
       padding:10px 12px;
     }
@@ -419,7 +423,10 @@ STYLE = '''
   }
   @media (min-width:1024px) {
     #hw-v3-pill.hw-v3-expanded {
-      right:0; width:340px;
+      /* Same anchor as collapsed; only width grows. No shift. */
+      left:calc(100% + 12px);
+      right:auto;
+      width:340px;
     }
   }
   .hw-v3-expanded .hw-v3-head {

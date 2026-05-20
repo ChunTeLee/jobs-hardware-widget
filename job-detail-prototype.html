@@ -40,7 +40,7 @@
 	" title="Copy to clipboard"><svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" fill="currentColor" focusable="false" role="img" width="1em" height="1em" preserveAspectRatio="xMidYMid meet" viewBox="0 0 32 32"><path d="M28,10V28H10V10H28m0-2H10a2,2,0,0,0-2,2V28a2,2,0,0,0,2,2H28a2,2,0,0,0,2-2V10a2,2,0,0,0-2-2Z" transform="translate(0)"></path><path d="M4,18H2V4A2,2,0,0,1,4,2H18V4H4Z" transform="translate(0)"></path><rect fill="none" width="32" height="32"></rect></svg> </button></span></div> <div><p class="mb-0.5 text-xs">Environment variables</p> <span class="inline-block "><span class="contents"><span class="cursor-pointerrounded-sm flex items-center bg-gray-50 py-0.5 pl-1.5 pr-1 font-mono text-xs text-gray-600 dark:bg-gray-800"><pre class="max-w-44 truncate">
 							LOCAL_FILES_ENCODED=demo.py &lt;redacted for public preview&gt;</pre></span></span> </span></div> <div><p class="mb-0.5 text-xs">Secrets</p> <ul class="flex flex-wrap items-center gap-1"><li class="inline-flex items-center gap-1 rounded-sm bg-gray-50 py-0.5 pl-1.5 pr-1 font-mono text-xs text-gray-600 dark:bg-gray-800"><a class="underline decoration-gray-400 hover:text-gray-800 dark:hover:text-gray-300" href="#">HF_TOKEN</a> <span class="inline-block "><span class="contents"><a class="inline-flex items-center" href="https://huggingface.co/Chunte"><div class="flex-none  "><img alt="" crossorigin="anonymous" class="size-3 rounded-full  flex-none select-none " src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='16' fill='%23475160'/%3E%3C/svg%3E"> </div></a></span> </span></li></ul></div> </div> 
 <div id="hw-control"
-     style="position:fixed;top:14px;right:20px;z-index:9999;width:380px;
+     style="position:fixed;bottom:14px;right:20px;z-index:9999;width:380px;
             background:rgba(15,17,23,0.94);border:1px solid #30363d;
             border-radius:12px;padding:12px;backdrop-filter:blur(10px);
             box-shadow:0 8px 28px rgba(0,0,0,.45);
@@ -301,6 +301,7 @@
     font-family:ui-sans-serif,system-ui,sans-serif;
     display:flex; flex-direction:column; gap:10px;
     transition:right .3s cubic-bezier(0.4,0,0.2,1),
+               left  .3s cubic-bezier(0.4,0,0.2,1),
                width .3s cubic-bezier(0.4,0,0.2,1),
                padding .25s ease;
   }
@@ -325,10 +326,13 @@
   @media (min-width:768px) {
     #hw-v3-pill.hw-v3-collapsed { width:420px; }
   }
-  /* COLLAPSED · lg — vertical, narrow, FLOATS in the right page margin */
+  /* COLLAPSED · lg — vertical, narrow, FLOATS in the right page margin.
+     Anchored at top-LEFT (12px past the logs' right edge) so growth on
+     expand happens rightward into the margin — the widget never shifts. */
   @media (min-width:1024px) {
     #hw-v3-pill.hw-v3-collapsed {
-      right:-160px;       /* 148px width + ~12px gap, sits outside logs */
+      left:calc(100% + 12px);
+      right:auto;
       width:148px;
       padding:10px 12px;
     }
@@ -342,7 +346,10 @@
   }
   @media (min-width:1024px) {
     #hw-v3-pill.hw-v3-expanded {
-      right:0; width:340px;
+      /* Same anchor as collapsed; only width grows. No shift. */
+      left:calc(100% + 12px);
+      right:auto;
+      width:340px;
     }
   }
   .hw-v3-expanded .hw-v3-head {
