@@ -244,10 +244,6 @@
   </div>
 </div>
 <style>
-  /* Enable smooth animation of `height: auto` (Chrome 129+, Edge 129+) so
-     the V3 pill can resize between content-driven collapsed and expanded
-     heights without explicit pixel values that would leave empty space. */
-  :root { interpolate-size: allow-keywords; }
   @keyframes hwPing { 75%,100% { transform:scale(1.8); opacity:0; } }
   @keyframes hwSpin { to { transform:rotate(360deg); } }
   .hw-spin { animation:hwSpin 1s linear infinite; transform-origin:50% 50%; }
@@ -686,17 +682,41 @@
     if (spacer) spacer.style.display = 'none';
   }
 
+  // FLIP-style height animation: measure start (current) height, apply
+  // the new state, measure end (target) height, then animate height
+  // between explicit pixel values. After transition, clear the inline
+  // height so the pill is content-sized again (no empty space).
   window.hwToggleV3 = function (ev) {
     if (ev) ev.stopPropagation();
-    v3Expanded = !v3Expanded;
     var pill = document.getElementById('hw-v3-pill');
     var btn  = document.getElementById('hw-v3-toggle');
-    if (pill) {
-      pill.classList.toggle('hw-v3-expanded', v3Expanded);
-      pill.classList.toggle('hw-v3-collapsed', !v3Expanded);
-    }
+    if (!pill) return;
+
+    var startH = pill.offsetHeight;
+
+    v3Expanded = !v3Expanded;
+    pill.classList.toggle('hw-v3-expanded', v3Expanded);
+    pill.classList.toggle('hw-v3-collapsed', !v3Expanded);
     if (btn) btn.title = v3Expanded ? 'Collapse' : 'Expand';
     applyState(currentState);
+
+    // Measure the new natural height with the new state applied.
+    pill.style.height = 'auto';
+    var endH = pill.offsetHeight;
+
+    // Lock to start height, force reflow, then animate to end height.
+    pill.style.height = startH + 'px';
+    void pill.offsetHeight;
+    pill.style.height = endH + 'px';
+
+    // After the height transition completes, clear the inline height
+    // so the pill goes back to natural content sizing.
+    var cleanup = function (e) {
+      if (e.propertyName !== 'height' || e.target !== pill) return;
+      pill.style.height = '';
+      pill.removeEventListener('transitionend', cleanup);
+    };
+    pill.addEventListener('transitionend', cleanup);
   };
 
   window.hwSetVersion = function (v) {
