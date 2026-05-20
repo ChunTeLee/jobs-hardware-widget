@@ -839,12 +839,18 @@ SCRIPT = '''
     });
 
     // Cleanup after transition: clear inline height so the pill returns to
-    // content-sized height (no empty space). On lg, clear inline width too
-    // — the CSS rule for the active state will hold the right value.
+    // content-sized height (no empty space). On lg, LOCK inline width to an
+    // explicit pixel value — leaving it as CSS `width: max-content` can
+    // resolve to a slightly different value than what we transitioned to,
+    // which makes the 12px gap between pill and logs drift after each cycle.
     var cleanup = function (e) {
       if (e.target !== pill || e.propertyName !== 'height') return;
       pill.style.height = '';
-      pill.style.width  = '';
+      if (isLg) {
+        pill.style.width = (v3Expanded ? 340 : (+pill.dataset.collapsedW || pill.offsetWidth)) + 'px';
+      } else {
+        pill.style.width = '';
+      }
       pill.removeEventListener('transitionend', cleanup);
     };
     pill.addEventListener('transitionend', cleanup);
