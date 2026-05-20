@@ -214,7 +214,7 @@ V1 = f'''
 <div id="hw-v1-wrap">
   <div class="border-t border-gray-200 px-4 py-3 dark:border-gray-800">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
-      <span class="text-gray-400 dark:text-gray-500" style="text-transform:uppercase;letter-spacing:.05em;font-size:11px;font-weight:500;">Hardware Utilization</span>
+      <p class="text-xs text-gray-500">Hardware</p>
       {badges("hw-v1")}
     </div>
     <div style="display:flex;flex-wrap:wrap;align-items:center;gap:32px;">
@@ -228,7 +228,7 @@ V2 = f'''
 <div id="hw-v2-wrap" style="display:none;">
   <div class="border-t border-gray-200 px-4 py-3 dark:border-gray-800">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
-      <span class="text-gray-400 dark:text-gray-500" style="text-transform:uppercase;letter-spacing:.05em;font-size:11px;font-weight:500;">Hardware Utilization</span>
+      <p class="text-xs text-gray-500">Hardware</p>
       {badges("hw-v2")}
     </div>
     <div style="display:flex;flex-wrap:wrap;align-items:center;gap:32px;">
@@ -262,9 +262,9 @@ def _v3_row(metric, label):
 
 V3 = f'''
 <div id="hw-v3-wrap" style="display:none;">
-  <div id="hw-v3-pill" class="hw-v3-collapsed" onclick="hwToggleV3(event)">
+  <div id="hw-v3-pill" class="hw-v3-collapsed border border-gray-200 bg-white dark:bg-gray-950" onclick="hwToggleV3(event)">
     <div class="hw-v3-head">
-      <span class="hw-v3-title">Hardware</span>
+      <p class="text-xs text-gray-500 hw-v3-title">Hardware</p>
       <span class="hw-v3-head-live">{badges("hw-v3")}</span>
       <button onclick="hwToggleV3(event)" id="hw-v3-toggle" class="hw-v3-toggle" title="Expand">
         <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="hw-v3-chevron">
@@ -371,11 +371,13 @@ STYLE = '''
   #hw-v3-pill {
     position:absolute; z-index:20; top:0; right:0;
     box-sizing:border-box; overflow:hidden;
-    background:rgba(22,27,34,0.96); border:1px solid #30363d;
+    /* Border + background come from Tailwind classes on the element
+       (border-gray-200 / bg-white dark:bg-gray-950) so the widget
+       inherits the page's chrome (matches the logs card border and
+       page background). */
     border-radius:12px; padding:8px 14px;
     box-shadow:0 4px 14px rgba(0,0,0,.35);
     cursor:pointer; user-select:none;
-    font-family:ui-sans-serif,system-ui,sans-serif;
     display:flex; flex-direction:column; gap:10px;
     transition:right  .3s cubic-bezier(0.4,0,0.2,1),
                left   .3s cubic-bezier(0.4,0,0.2,1),
@@ -412,12 +414,15 @@ STYLE = '''
     #hw-v3-pill.hw-v3-collapsed {
       right:-160px;
       left:auto;
-      width:148px;
+      /* No fixed width — let the pill hug its content horizontally.
+         Right edge stays anchored 160px past logs; left edge is wherever
+         the widest content (e.g. 'MEM  PEAK 43.0 / 48 GB') ends. */
+      width:max-content;
       padding:10px 12px;
     }
-    .hw-v3-collapsed .hw-v3-head { display:flex; align-items:center; justify-content:space-between; }
+    .hw-v3-collapsed .hw-v3-head { display:flex; align-items:center; gap:8px; justify-content:space-between; }
     .hw-v3-collapsed .hw-v3-rows { flex-direction:column; align-items:stretch; gap:10px; }
-    .hw-v3-collapsed .hw-v3-row { flex-direction:row; justify-content:space-between; }
+    .hw-v3-collapsed .hw-v3-row { flex-direction:row; justify-content:space-between; gap:14px; }
   }
   /* EXPANDED — overlay; vertical stack with sparklines (logs unchanged) */
   #hw-v3-pill.hw-v3-expanded {
@@ -439,7 +444,8 @@ STYLE = '''
   .hw-v3-expanded .hw-v3-rows {
     display:flex; flex-direction:column; gap:12px;
   }
-  .hw-v3-expanded .hw-v3-row { flex-direction:column; gap:4px; }
+  /* Match V2's spacing between metric title and sparkline (margin-bottom:5px). */
+  .hw-v3-expanded .hw-v3-row { flex-direction:column; gap:5px; }
   .hw-v3-expanded .hw-v3-row-head {
     display:flex; align-items:center; gap:8px; justify-content:flex-start;
   }
@@ -447,10 +453,10 @@ STYLE = '''
   .hw-v3-expanded .hw-v3-agg { display:inline; }
   .hw-v3-expanded .hw-v3-spark { display:block; }
   /* Shared chrome */
-  .hw-v3-title {
-    font-size:10px; text-transform:uppercase; letter-spacing:.06em;
-    color:#8b949e; font-weight:600;
-  }
+  /* hw-v3-title now uses the page-header label style (text-xs +
+     text-gray-500 Tailwind classes on the <p>). Keep .hw-v3-title as
+     a marker class only — no extra typographic overrides. */
+  .hw-v3-title { margin:0; }
   .hw-v3-head-live { margin-left:4px; }
   .hw-v3-toggle {
     margin-left:auto; background:transparent; border:none;
