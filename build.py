@@ -100,20 +100,40 @@ main_html, n2 = re.subn(
     main_html, count=1)
 print(f"  Header status hooks: bar={n1} label={n2}")
 
-# ── 3d. Tag the Logs card so V3 (rail) can dock inside it ─────────────────────
+# ── 3d. Tag the Logs card and wrap it in #hw-v3-layout (sibling slot for V3) ─
 main_html, c1 = re.subn(
     r'<div class="flex min-h-\[300px\] flex-1 flex-col overflow-hidden rounded-lg border border-gray-200">',
-    '<div id="hw-logs-card" class="flex min-h-[300px] flex-1 flex-col overflow-hidden rounded-lg border border-gray-200" style="position:relative">',
+    '<div id="hw-logs-card" class="flex min-h-[300px] flex-1 flex-col overflow-hidden rounded-lg border border-gray-200">',
     main_html, count=1)
-main_html, c2 = re.subn(
-    r'<div class="text-smd shrink-0 border-b border-gray-200 bg-white px-3 py-1.5"><h2 class="font-semibold">Logs</h2></div>',
-    '<div id="hw-logs-header" class="text-smd shrink-0 border-b border-gray-200 bg-white px-3 py-1.5"><h2 class="font-semibold">Logs</h2></div>',
-    main_html, count=1)
-main_html, c3 = re.subn(
-    r'<div class="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900">',
-    '<div id="hw-logs-body" class="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900" style="transition:padding-right .25s ease">',
-    main_html, count=1)
-print(f"  Logs card hooks: card={c1} header={c2} body={c3}")
+
+def _find_matching_close_div(html, open_pos):
+    """Find the index right after the </div> that matches the <div...> at open_pos."""
+    i = open_pos + 1
+    depth = 1
+    while i < len(html):
+        no = html.find('<div', i)
+        nc = html.find('</div>', i)
+        if nc == -1: return -1
+        if no != -1 and no < nc:
+            depth += 1
+            i = no + 4
+        else:
+            depth -= 1
+            i = nc + 6
+            if depth == 0: return i
+    return -1
+
+_card_open = main_html.find('<div id="hw-logs-card"')
+_card_end  = _find_matching_close_div(main_html, _card_open) if _card_open != -1 else -1
+if _card_open == -1 or _card_end == -1:
+    print("ERROR: could not locate logs card bounds for V3 layout wrap.")
+    sys.exit(1)
+main_html = (main_html[:_card_open]
+             + '<div id="hw-v3-layout" class="hw-v3-layout">'
+             + main_html[_card_open:_card_end]
+             + '</div>'
+             + main_html[_card_end:])
+print(f"  Logs card hooks: card={c1} wrapped-in-v3-layout=1")
 
 # ── 4. Patch CSS: rewrite relative url() to absolute ─────────────────────────
 print("Patching CSS url() references...")
@@ -209,57 +229,46 @@ V2 = f'''
   </div>
 </div>'''
 
-# Version 3 — Collapsible rail docked inside the logs card (right edge).
-# JS relocates #hw-v3-rail into the logs card on activate; it is a sibling
-# of the scrolling logs body, so it stays put while logs scroll.
-def _rail_metric(metric, label):
+# Version 3 — Responsive "Hardware" pill anchored to the log container.
+# Collapsed = compact pill in real layout next to / above the logs:
+#   lg  -> vertical stack to the right of the logs card (sibling)
+#   md  -> horizontal row above logs, right-aligned
+#   sm  -> horizontal row above logs, full screen width
+# Expanded = the same pill but larger, overlay over the logs (logs unchanged),
+# vertical stack of 3 metrics with sparklines on every breakpoint.
+# JS moves #hw-v3-pill into #hw-v3-layout (sibling of logs card) on activate.
+def _v3_row(metric, label):
     return f'''
-    <div class="hw-rail-row" data-metric="{metric}">
-      <div class="hw-rail-label">{label}</div>
-      <div class="hw-rail-agg-val">
-        <span id="hw-v3-{metric}-agg" class="hw-rail-agg"></span>
-        <span id="hw-v3-{metric}-val" class="hw-rail-val">&mdash;</span>
-      </div>
-      <div class="hw-rail-viz">
-        <div class="hw-rail-spark hw-spark-track">
-          <svg id="hw-v3-{metric}-svg" width="100%" height="28" viewBox="0 0 100 28" preserveAspectRatio="none" style="display:block;"></svg>
+      <div class="hw-v3-row" data-metric="{metric}">
+        <div class="hw-v3-row-head">
+          <span id="hw-v3-{metric}-dot" class="hw-v3-dot"></span>
+          <span class="hw-v3-row-label">{label}</span>
+          <span class="hw-v3-row-spacer"></span>
+          <span id="hw-v3-{metric}-agg" class="hw-v3-agg"></span>
+          <span id="hw-v3-{metric}-val" class="hw-v3-val">&mdash;</span>
         </div>
-        <div id="hw-v3-{metric}-blip" class="hw-rail-blip"></div>
-      </div>
-    </div>'''
+        <div class="hw-v3-spark hw-spark-track">
+          <svg id="hw-v3-{metric}-svg" width="100%" height="30" viewBox="0 0 100 30" preserveAspectRatio="none" style="display:block;"></svg>
+        </div>
+      </div>'''
 
 V3 = f'''
 <div id="hw-v3-wrap" style="display:none;">
-  <div id="hw-v3-rail" class="hw-rail-collapsed">
-    <div class="hw-rail-head">
-      <span class="hw-rail-title">Hardware</span>
-      <button onclick="hwToggleRail()" id="hw-v3-toggle" class="hw-rail-toggle" title="Expand"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="10 4 6 8 10 12"/></svg></button>
+  <div id="hw-v3-pill" class="hw-v3-collapsed" onclick="hwToggleV3(event)">
+    <div class="hw-v3-head">
+      <span class="hw-v3-title">Hardware</span>
+      <span class="hw-v3-head-live">{badges("hw-v3")}</span>
+      <button onclick="hwToggleV3(event)" id="hw-v3-toggle" class="hw-v3-toggle" title="Expand">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="hw-v3-chevron">
+          <polyline points="4 6 8 10 12 6"/>
+        </svg>
+      </button>
     </div>
-    {_rail_metric("gpu-util", "GPU Util")}
-    {_rail_metric("gpu-mem",  "GPU Memory")}
-    {_rail_metric("cpu-util", "CPU Util")}
-    <div class="hw-rail-foot">{badges("hw-v3")}</div>
-  </div>
-</div>'''
-
-# Version 4 — Sticky floating pill (HUD), bottom-right of viewport.
-def _pill_chip(metric, label):
-    return f'''
-    <div class="hw-pill-chip" data-metric="{metric}">
-      <span id="hw-v4-{metric}-dot" class="hw-pill-dot"></span>
-      <span class="hw-pill-label">{label}</span>
-      <span id="hw-v4-{metric}-val" class="hw-pill-val">&mdash;</span>
-    </div>'''
-
-V4 = f'''
-<div id="hw-v4-wrap" style="display:none;">
-  <div id="hw-v4-pill">
-    {_pill_chip("gpu-util", "GPU")}
-    <div class="hw-pill-sep"></div>
-    {_pill_chip("gpu-mem",  "MEM")}
-    <div class="hw-pill-sep"></div>
-    {_pill_chip("cpu-util", "CPU")}
-    <span class="hw-pill-live">{badges("hw-v4")}</span>
+    <div class="hw-v3-rows">
+      {_v3_row("gpu-util", "GPU")}
+      {_v3_row("gpu-mem",  "MEM")}
+      {_v3_row("cpu-util", "CPU")}
+    </div>
   </div>
 </div>'''
 
@@ -283,8 +292,7 @@ CONTROL = '''
               border-radius:8px;padding:3px;gap:3px;">
     <button onclick="hwSetVersion('v1')" id="hw-ver-v1" class="hw-seg" style="flex:1;">V1 Bar</button>
     <button onclick="hwSetVersion('v2')" id="hw-ver-v2" class="hw-seg" style="flex:1;">V2 Trend</button>
-    <button onclick="hwSetVersion('v3')" id="hw-ver-v3" class="hw-seg" style="flex:1;">V3 Rail</button>
-    <button onclick="hwSetVersion('v4')" id="hw-ver-v4" class="hw-seg" style="flex:1;">V4 Pill</button>
+    <button onclick="hwSetVersion('v3')" id="hw-ver-v3" class="hw-seg" style="flex:1;">V3 Pill</button>
   </div>
 
   <!-- Contextual state toggle: hidden/collapsed until a version is active -->
@@ -333,60 +341,129 @@ STYLE = '''
   }
   #hw-state-tier.open { max-height:200px; opacity:1; }
 
-  /* ── V3 rail (docks inside the logs card) ─────────────────────────────── */
-  #hw-v3-rail {
-    box-sizing:border-box; display:flex; flex-direction:column; gap:10px;
-    transition:width .25s ease, padding .25s ease;
-    font-family:ui-sans-serif,system-ui,sans-serif;
+  /* ── V3 responsive pill (anchored to the log container) ───────────────── */
+  /* The pill lives inside #hw-v3-layout which wraps the logs card.        */
+  /* Layout: column (widget above logs) on sm/md, row (widget right of    */
+  /* logs) on lg. Pill is position:relative when collapsed (real layout   */
+  /* space) and position:absolute when expanded (overlay, logs unchanged). */
+  .hw-v3-layout {
+    display:flex; flex-direction:column; gap:8px;
+    position:relative; flex:1 1 auto; min-height:0;
   }
-  #hw-v3-rail.hw-rail-collapsed { width:48px;  padding:8px 4px; align-items:center; }
-  #hw-v3-rail.hw-rail-expanded  { width:280px; padding:10px 14px; }
-  .hw-rail-head { display:flex; align-items:center; justify-content:space-between; width:100%; min-height:18px; }
-  .hw-rail-collapsed .hw-rail-title { display:none; }
-  .hw-rail-title { font-size:10px; text-transform:uppercase; letter-spacing:.06em; color:#8b949e; font-weight:600; }
-  .hw-rail-toggle { background:transparent; border:none; color:#8b949e; cursor:pointer; padding:2px; border-radius:4px; display:inline-flex; }
-  .hw-rail-toggle:hover { background:rgba(139,148,158,.15); color:#e6edf3; }
-  .hw-rail-collapsed .hw-rail-toggle svg { transform:rotate(180deg); }
-  .hw-rail-row { width:100%; display:flex; flex-direction:column; gap:3px; }
-  .hw-rail-label { font-size:10px; color:#8b949e; font-weight:500; }
-  .hw-rail-collapsed .hw-rail-label { display:none; }
-  .hw-rail-agg-val { display:flex; align-items:baseline; justify-content:space-between; gap:6px; }
-  .hw-rail-collapsed .hw-rail-agg-val { justify-content:center; }
-  .hw-rail-agg { font-size:9px; font-weight:600; letter-spacing:.07em; text-transform:uppercase; color:#8b949e; }
-  .hw-rail-collapsed .hw-rail-agg { display:none; }
-  .hw-rail-val { font-size:11px; color:#e6edf3; font-weight:500; font-variant-numeric:tabular-nums; white-space:nowrap; }
-  .hw-rail-viz { position:relative; }
-  .hw-rail-spark { height:28px; }
-  .hw-rail-collapsed .hw-rail-spark { display:none; }
-  .hw-rail-blip { height:3px; border-radius:2px; background:#6e7681; margin-top:2px; }
-  .hw-rail-expanded .hw-rail-blip { display:none; }
-  .hw-rail-foot { margin-top:auto; min-height:14px; }
-  .hw-rail-collapsed .hw-rail-foot { display:none; }
-
-  /* ── V4 sticky pill (HUD, bottom-right of viewport) ───────────────────── */
-  #hw-v4-pill {
-    position:fixed; bottom:24px; right:24px; z-index:9998;
-    display:flex; align-items:center; gap:12px;
-    background:rgba(22,27,34,0.95); border:1px solid #30363d;
-    border-radius:9999px; padding:8px 16px;
-    box-shadow:0 8px 28px rgba(0,0,0,.55); backdrop-filter:blur(8px);
-    font-family:ui-sans-serif,system-ui,sans-serif;
+  /* DOM order is [pill, logs-card]; use `order` so the pill appears */
+  /* above on sm/md (col) and to the right on lg (row).               */
+  .hw-v3-layout > #hw-v3-pill   { order:0; }
+  .hw-v3-layout > #hw-logs-card { order:1; }
+  @media (min-width:1024px) {
+    .hw-v3-layout { flex-direction:row; gap:12px; align-items:flex-start; }
+    .hw-v3-layout > #hw-logs-card { flex:1 1 auto; min-width:0; }
+    .hw-v3-layout > #hw-v3-pill   { order:2; }
   }
-  .hw-pill-chip { display:flex; align-items:center; gap:6px; }
-  .hw-pill-dot { width:8px; height:8px; border-radius:9999px; background:#6e7681; flex-shrink:0; }
-  .hw-pill-label { font-size:10px; color:#8b949e; font-weight:600; text-transform:uppercase; letter-spacing:.05em; }
-  .hw-pill-val { font-size:11px; color:#e6edf3; font-weight:500; font-variant-numeric:tabular-nums; }
-  .hw-pill-sep { width:1px; height:14px; background:#30363d; }
-  .hw-pill-live { margin-left:2px; }
+  #hw-v3-pill {
+    box-sizing:border-box;
+    background:rgba(22,27,34,0.96); border:1px solid #30363d;
+    border-radius:12px; padding:8px 14px;
+    box-shadow:0 4px 14px rgba(0,0,0,.35);
+    cursor:pointer; user-select:none;
+    font-family:ui-sans-serif,system-ui,sans-serif;
+    display:flex; flex-direction:column; gap:10px;
+    transition:width .3s cubic-bezier(0.4,0,0.2,1),
+               height .3s cubic-bezier(0.4,0,0.2,1),
+               padding .25s ease, top .25s ease, right .25s ease,
+               bottom .25s ease, left .25s ease;
+  }
+  /* COLLAPSED · sm (default) — full-width row above logs, horizontal */
+  #hw-v3-pill.hw-v3-collapsed { width:100%; }
+  .hw-v3-collapsed .hw-v3-head { display:none; }
+  .hw-v3-collapsed .hw-v3-rows {
+    display:flex; flex-direction:row; align-items:center;
+    gap:16px; flex-wrap:wrap;
+  }
+  .hw-v3-collapsed .hw-v3-row {
+    flex:1 1 auto; min-width:80px; display:flex; flex-direction:row;
+    align-items:center; gap:6px;
+  }
+  .hw-v3-collapsed .hw-v3-row-head {
+    display:flex; align-items:center; gap:6px; flex:1; min-width:0;
+  }
+  .hw-v3-collapsed .hw-v3-row-spacer { display:none; }
+  .hw-v3-collapsed .hw-v3-agg { display:none; }
+  .hw-v3-collapsed .hw-v3-spark { display:none; }
+  /* COLLAPSED · md — horizontal, right-aligned, narrower */
+  @media (min-width:768px) {
+    #hw-v3-pill.hw-v3-collapsed { width:auto; max-width:420px; align-self:flex-end; }
+  }
+  /* COLLAPSED · lg — vertical, narrow, on the right of logs */
+  @media (min-width:1024px) {
+    #hw-v3-pill.hw-v3-collapsed {
+      width:148px; max-width:148px; align-self:stretch; padding:10px 12px;
+    }
+    .hw-v3-collapsed .hw-v3-head { display:flex; align-items:center; justify-content:space-between; }
+    .hw-v3-collapsed .hw-v3-rows { flex-direction:column; align-items:stretch; gap:10px; }
+    .hw-v3-collapsed .hw-v3-row { flex-direction:row; justify-content:space-between; }
+  }
+  /* EXPANDED — overlay; always vertical stack with sparklines */
+  #hw-v3-pill.hw-v3-expanded {
+    position:absolute; z-index:20;
+    top:0; left:0; right:0;
+    padding:12px 14px;
+  }
+  @media (min-width:1024px) {
+    #hw-v3-pill.hw-v3-expanded {
+      left:auto; right:0; width:340px;
+    }
+  }
+  .hw-v3-expanded .hw-v3-head {
+    display:flex; align-items:center; gap:10px; justify-content:flex-start;
+    margin-bottom:2px;
+  }
+  .hw-v3-expanded .hw-v3-rows {
+    display:flex; flex-direction:column; gap:12px;
+  }
+  .hw-v3-expanded .hw-v3-row { flex-direction:column; gap:4px; }
+  .hw-v3-expanded .hw-v3-row-head {
+    display:flex; align-items:center; gap:8px; justify-content:flex-start;
+  }
+  .hw-v3-expanded .hw-v3-row-spacer { flex:1; }
+  .hw-v3-expanded .hw-v3-agg { display:inline; }
+  .hw-v3-expanded .hw-v3-spark { display:block; }
+  /* Shared chrome */
+  .hw-v3-title {
+    font-size:10px; text-transform:uppercase; letter-spacing:.06em;
+    color:#8b949e; font-weight:600;
+  }
+  .hw-v3-head-live { margin-left:4px; }
+  .hw-v3-toggle {
+    margin-left:auto; background:transparent; border:none;
+    color:#8b949e; cursor:pointer; padding:2px; border-radius:4px;
+    display:inline-flex;
+  }
+  .hw-v3-toggle:hover { background:rgba(139,148,158,.15); color:#e6edf3; }
+  .hw-v3-chevron { transition:transform .25s ease; }
+  .hw-v3-expanded .hw-v3-chevron { transform:rotate(180deg); }
+  .hw-v3-dot { width:8px; height:8px; border-radius:9999px; background:#6e7681; flex-shrink:0; }
+  .hw-v3-row-label {
+    font-size:10px; color:#8b949e; font-weight:600;
+    text-transform:uppercase; letter-spacing:.05em;
+  }
+  .hw-v3-agg {
+    font-size:9px; font-weight:600; letter-spacing:.07em;
+    text-transform:uppercase; color:#8b949e;
+  }
+  .hw-v3-val {
+    font-size:11px; color:#e6edf3; font-weight:500;
+    font-variant-numeric:tabular-nums; white-space:nowrap;
+  }
+  .hw-v3-spark { height:30px; }
 </style>'''
 
 SCRIPT = '''
 <script>
 (function () {
   // Which render style each version uses
-  var VSTYLE = { 'hw-v1':'bar', 'hw-v2':'spark', 'hw-v3':'rail', 'hw-v4':'pill' };
-  var PREFIXES = ['hw-v1', 'hw-v2', 'hw-v3', 'hw-v4'];
-  var railExpanded = false;
+  var VSTYLE = { 'hw-v1':'bar', 'hw-v2':'spark', 'hw-v3':'pill' };
+  var PREFIXES = ['hw-v1', 'hw-v2', 'hw-v3'];
+  var v3Expanded = false;
   var FULL = 40;            // full-run sample count (x-axis denominator)
   var currentState = 'completed';
   var currentVersion = 'v1';
@@ -577,15 +654,12 @@ SCRIPT = '''
       if (valEl) valEl.textContent = valText;
       if (style === 'bar')   renderBar(prefix, m, pct, color);
       else if (style === 'spark') renderSpark(prefix, m, sparkSeries, color, sparkMode);
-      else if (style === 'rail') {
-        // Sparkline for expanded mode; blip colour drives the collapsed cue.
-        renderSpark(prefix, m, sparkSeries, color, sparkMode);
-        var blip = document.getElementById(prefix + '-' + m + '-blip');
-        if (blip) blip.style.backgroundColor = color;
-      }
       else if (style === 'pill') {
+        // Dot drives the colour cue in collapsed mode; sparkline is rendered
+        // always but only visible (via CSS) when the pill is expanded.
         var dot = document.getElementById(prefix + '-' + m + '-dot');
         if (dot) dot.style.backgroundColor = color;
+        renderSpark(prefix, m, sparkSeries, color, sparkMode);
       }
     });
   }
@@ -645,60 +719,47 @@ SCRIPT = '''
 
   window.hwSetState = function (n) { applyState(n); };
 
-  // V3 rail docks inside the logs card. Move it in/out of the card on switch.
-  function attachRail() {
-    var rail = document.getElementById('hw-v3-rail');
-    var card = document.getElementById('hw-logs-card');
-    var head = document.getElementById('hw-logs-header');
-    if (!rail || !card) return;
-    if (rail.parentElement !== card) card.appendChild(rail);
-    var hH = head ? head.offsetHeight : 36;
-    rail.style.position = 'absolute';
-    rail.style.top = hH + 'px';
-    rail.style.right = '0';
-    rail.style.bottom = '0';
-    rail.style.borderLeft = '1px solid rgba(48,54,61,.7)';
-    rail.style.background = 'rgba(13,17,23,0.78)';
-    rail.style.backdropFilter = 'blur(4px)';
+  // V3 pill is a flex child of #hw-v3-layout (which wraps the logs card).
+  // Move it into the layout on activate so it participates in real layout.
+  function attachV3() {
+    var pill = document.getElementById('hw-v3-pill');
+    var layout = document.getElementById('hw-v3-layout');
+    if (!pill || !layout) return;
+    if (pill.parentElement !== layout) layout.insertBefore(pill, layout.firstChild);
   }
-  function detachRail() {
-    var rail = document.getElementById('hw-v3-rail');
+  function detachV3() {
+    var pill = document.getElementById('hw-v3-pill');
     var wrap = document.getElementById('hw-v3-wrap');
-    if (!rail || !wrap) return;
-    if (rail.parentElement !== wrap) wrap.appendChild(rail);
-    rail.style.position = rail.style.top = rail.style.right = rail.style.bottom = '';
-    rail.style.borderLeft = rail.style.background = rail.style.backdropFilter = '';
-  }
-  function syncLogsPad() {
-    var body = document.getElementById('hw-logs-body');
-    if (!body) return;
-    if (currentVersion === 'v3') {
-      body.style.paddingRight = (railExpanded ? 280 : 48) + 'px';
-    } else {
-      body.style.paddingRight = '0px';
-    }
+    if (!pill || !wrap) return;
+    // Reset to collapsed before parking, so re-attaching starts fresh.
+    pill.classList.remove('hw-v3-expanded');
+    pill.classList.add('hw-v3-collapsed');
+    v3Expanded = false;
+    if (pill.parentElement !== wrap) wrap.appendChild(pill);
   }
 
-  window.hwToggleRail = function () {
-    railExpanded = !railExpanded;
-    var rail = document.getElementById('hw-v3-rail');
+  window.hwToggleV3 = function (ev) {
+    if (ev) ev.stopPropagation();
+    v3Expanded = !v3Expanded;
+    var pill = document.getElementById('hw-v3-pill');
     var btn  = document.getElementById('hw-v3-toggle');
-    if (rail) rail.className = railExpanded ? 'hw-rail-expanded' : 'hw-rail-collapsed';
-    if (btn)  btn.title = railExpanded ? 'Collapse' : 'Expand';
-    syncLogsPad();
+    if (pill) {
+      pill.classList.toggle('hw-v3-expanded', v3Expanded);
+      pill.classList.toggle('hw-v3-collapsed', !v3Expanded);
+    }
+    if (btn) btn.title = v3Expanded ? 'Collapse' : 'Expand';
     applyState(currentState);
   };
 
   window.hwSetVersion = function (v) {
     currentVersion = v;
-    ['v1', 'v2', 'v3', 'v4'].forEach(function (k) {
+    ['v1', 'v2', 'v3'].forEach(function (k) {
       var w = document.getElementById('hw-' + k + '-wrap');
       if (w) w.style.display = (k === v) ? '' : 'none';
       var b = document.getElementById('hw-ver-' + k);
       if (b) b.classList.toggle('active', k === v);
     });
-    if (v === 'v3') attachRail(); else detachRail();
-    syncLogsPad();
+    if (v === 'v3') attachV3(); else detachV3();
     // Reveal the contextual state toggle now that a version is active
     document.getElementById('hw-state-tier').classList.add('open');
     applyState(currentState);
@@ -711,11 +772,11 @@ SCRIPT = '''
 })();
 </script>'''
 
-HARDWARE_BLOCK = CONTROL + V1 + V2 + V3 + V4 + STYLE + SCRIPT
+HARDWARE_BLOCK = CONTROL + V1 + V2 + V3 + STYLE + SCRIPT
 
 # ── 6. Find injection point and splice ────────────────────────────────────────
 print("Finding injection point...")
-LOGS_MARKER = '<div id="hw-logs-card"'
+LOGS_MARKER = '<div id="hw-v3-layout"'
 inject_pos = main_html.find(LOGS_MARKER)
 if inject_pos == -1:
     print("ERROR: Could not find logs marker. Aborting.")
