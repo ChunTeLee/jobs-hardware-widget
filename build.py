@@ -362,28 +362,29 @@ STYLE = '''
     position:relative; flex:1 1 auto; min-height:0;
   }
   .hw-v3-spacer {
-    order:0; flex-shrink:0; width:100%; height:46px;
+    order:0; flex-shrink:0; width:100%; height:60px;
   }
-  @media (min-width:1024px) {
+  @media (min-width:1536px) {
     .hw-v3-spacer { display:none; }
   }
   .hw-v3-layout > #hw-logs-card { order:1; }
   #hw-v3-pill {
     position:absolute; z-index:20; top:0; right:0;
-    box-sizing:border-box;
+    box-sizing:border-box; overflow:hidden;
     background:rgba(22,27,34,0.96); border:1px solid #30363d;
     border-radius:12px; padding:8px 14px;
     box-shadow:0 4px 14px rgba(0,0,0,.35);
     cursor:pointer; user-select:none;
     font-family:ui-sans-serif,system-ui,sans-serif;
     display:flex; flex-direction:column; gap:10px;
-    transition:right .3s cubic-bezier(0.4,0,0.2,1),
-               left  .3s cubic-bezier(0.4,0,0.2,1),
-               width .3s cubic-bezier(0.4,0,0.2,1),
+    transition:right  .3s cubic-bezier(0.4,0,0.2,1),
+               left   .3s cubic-bezier(0.4,0,0.2,1),
+               width  .3s cubic-bezier(0.4,0,0.2,1),
+               height .3s cubic-bezier(0.4,0,0.2,1),
                padding .25s ease;
   }
-  /* COLLAPSED · sm (default) — full-width row above logs, horizontal */
-  #hw-v3-pill.hw-v3-collapsed { width:100%; }
+  /* COLLAPSED · mobile (default) — full-width row above logs, horizontal */
+  #hw-v3-pill.hw-v3-collapsed { width:100%; height:60px; }
   .hw-v3-collapsed .hw-v3-head { display:none; }
   .hw-v3-collapsed .hw-v3-rows {
     display:flex; flex-direction:row; align-items:center;
@@ -399,18 +400,20 @@ STYLE = '''
   .hw-v3-collapsed .hw-v3-row-spacer { display:none; }
   .hw-v3-collapsed .hw-v3-agg { display:none; }
   .hw-v3-collapsed .hw-v3-spark { display:none; }
-  /* COLLAPSED · md — horizontal, right-aligned, narrower */
+  /* COLLAPSED · laptop (Tailwind md+, 768–1535) — horizontal, right-aligned */
   @media (min-width:768px) {
-    #hw-v3-pill.hw-v3-collapsed { width:420px; }
+    #hw-v3-pill.hw-v3-collapsed { width:420px; height:60px; }
   }
-  /* COLLAPSED · lg — vertical, narrow, FLOATS in the right page margin.
-     Anchored at top-LEFT (12px past the logs' right edge) so growth on
-     expand happens rightward into the margin — the widget never shifts. */
-  @media (min-width:1024px) {
+  /* COLLAPSED · 4K-class (Tailwind 2xl, ≥1536) — vertical, narrow,
+     FLOATS in the right page margin. Right edge anchored 160px past logs'
+     right edge; same anchor as expanded so on expand the widget grows
+     leftward INTO logs without the right edge shifting. */
+  @media (min-width:1536px) {
     #hw-v3-pill.hw-v3-collapsed {
-      left:calc(100% + 12px);
-      right:auto;
+      right:-160px;
+      left:auto;
       width:148px;
+      height:156px;
       padding:10px 12px;
     }
     .hw-v3-collapsed .hw-v3-head { display:flex; align-items:center; justify-content:space-between; }
@@ -419,14 +422,16 @@ STYLE = '''
   }
   /* EXPANDED — overlay; vertical stack with sparklines (logs unchanged) */
   #hw-v3-pill.hw-v3-expanded {
-    right:0; width:100%; padding:12px 14px;
+    right:0; width:100%; height:280px; padding:12px 14px;
   }
-  @media (min-width:1024px) {
+  @media (min-width:1536px) {
     #hw-v3-pill.hw-v3-expanded {
-      /* Same anchor as collapsed; only width grows. No shift. */
-      left:calc(100% + 12px);
-      right:auto;
+      /* Same right-anchor as collapsed (right:-160). No shift. Width grows
+         leftward, pulling the left edge INTO the logs container (overlay). */
+      right:-160px;
+      left:auto;
       width:340px;
+      height:280px;
     }
   }
   .hw-v3-expanded .hw-v3-head {
