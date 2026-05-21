@@ -13,13 +13,17 @@ Follows the live-page-replica skill workflow:
   8. Write index.html
 """
 
+import os
 import re
 import sys
 
+# Portable paths — everything lives next to this script, so the repo is
+# self-contained and `python build.py` works on any device after a clone.
 LIVE_BASE = "https://huggingface.co"
-DOM_FILE  = r"C:\Users\eric5\Downloads\page-main.html"
-CSS_FILE  = r"C:\HuggingFace\Job Gauges\style.css"
-OUT_FILE  = r"C:\HuggingFace\Job Gauges\job-detail-prototype.html"
+BASE_DIR  = os.path.dirname(os.path.abspath(__file__))
+DOM_FILE  = os.path.join(BASE_DIR, "page-main.html")
+CSS_FILE  = os.path.join(BASE_DIR, "style.css")
+OUT_FILE  = os.path.join(BASE_DIR, "job-detail-prototype.html")
 
 # ── 1. Read rendered DOM ──────────────────────────────────────────────────────
 print("Reading DOM...")
