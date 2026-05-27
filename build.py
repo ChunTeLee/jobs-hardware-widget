@@ -415,11 +415,12 @@ STYLE = '''
      right edge; same anchor as expanded so on expand the widget grows
      leftward INTO logs without the right edge shifting. */
   @media (min-width:1536px) {
-    /* 4K-class: pill is FLUSH with the logs' right edge (overlays the
-       top-right of logs; does not exceed the log container). JS measures
-       and locks the collapsed width inline so it stays a length value
-       (animatable). The right anchor stays at 0 in both states; expand
-       grows the pill leftward over logs without shifting the right edge. */
+    /* 4K-class: pill FLOATS in the page margin with a 10px gap to the
+       right of the logs container. JS (lockLgAnchor) measures the
+       collapsed width W and sets inline `right:-(W+10)` and `width:Wpx`
+       so the right anchor is in the margin AND the width is a length
+       (animatable). The CSS values below are fallbacks the inline
+       overrides — they don't determine the actual position. */
     #hw-v3-pill.hw-v3-collapsed {
       right:0; left:auto; width:max-content; padding:10px 12px;
     }
@@ -433,9 +434,10 @@ STYLE = '''
   }
   @media (min-width:1536px) {
     #hw-v3-pill.hw-v3-expanded {
-      /* Same right anchor as collapsed (right:0) so the right edge stays
-         flush with logs; only width grows leftward INTO logs (overlay). */
-      right:0;
+      /* Inline `right:-(W+10)` from lockLgAnchor persists across cycles
+         (cleanup doesn't clear it). The right edge stays in the margin
+         (10px past logs); only the width grows from W to 340px, pulling
+         the LEFT edge into logs — overlay without right-edge shift. */
       left:auto;
       width:340px;
     }
@@ -749,8 +751,9 @@ SCRIPT = '''
   window.hwSetState = function (n) { applyState(n); };
 
   // 4K-class only: measure the pill's natural collapsed width and lock
-  // it inline as a length value so width transitions can animate.
-  // (Right anchor is handled by CSS right:0 — pill is flush with logs.)
+  // both inline width (length, so transitions animate) AND inline right
+  // (= -(w + 10), so the pill's LEFT edge sits 10px past the logs' right
+  // edge — i.e. in the page margin, with a 10px gap to logs).
   function lockLgAnchor(pill) {
     if (!matchMedia('(min-width: 1536px)').matches) {
       pill.style.right = '';
@@ -759,12 +762,13 @@ SCRIPT = '''
     }
     var prevTrans = pill.style.transition;
     pill.style.transition = 'none';
-    pill.style.right = '';   // CSS right:0 holds; no inline override
+    pill.style.right = '';
     pill.style.width = 'max-content';
-    void pill.offsetWidth;   // force layout
+    void pill.offsetWidth;
     var w = pill.offsetWidth;
     pill.dataset.collapsedW = w;
     pill.style.width = w + 'px';
+    pill.style.right = -(w + 10) + 'px';   // 10px gap into the page margin
     void pill.offsetWidth;
     pill.style.transition = prevTrans;
   }
