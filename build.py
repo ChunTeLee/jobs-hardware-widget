@@ -218,7 +218,7 @@ V1 = f'''
 <div id="hw-v1-wrap">
   <div class="border-t border-gray-200 px-4 py-3 dark:border-gray-800">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
-      <p class="text-xs text-gray-500">Hardware</p>
+      <p class="text-xs text-gray-500">Hardware Utilization</p>
       {badges("hw-v1")}
     </div>
     <div style="display:flex;flex-wrap:wrap;align-items:center;gap:32px;">
@@ -232,7 +232,7 @@ V2 = f'''
 <div id="hw-v2-wrap" style="display:none;">
   <div class="border-t border-gray-200 px-4 py-3 dark:border-gray-800">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
-      <p class="text-xs text-gray-500">Hardware</p>
+      <p class="text-xs text-gray-500">Hardware Utilization</p>
       {badges("hw-v2")}
     </div>
     <div style="display:flex;flex-wrap:wrap;align-items:center;gap:32px;">
@@ -268,7 +268,7 @@ V3 = f'''
 <div id="hw-v3-wrap" style="display:none;">
   <div id="hw-v3-pill" class="hw-v3-collapsed border border-gray-200 bg-white dark:bg-gray-950" onclick="hwToggleV3(event)">
     <div class="hw-v3-head">
-      <p class="text-xs text-gray-500 hw-v3-title">Hardware</p>
+      <p class="text-xs text-gray-500 hw-v3-title">Hardware Utilization</p>
       <span class="hw-v3-head-live">{badges("hw-v3")}</span>
       <button onclick="hwToggleV3(event)" id="hw-v3-toggle" class="hw-v3-toggle" title="Expand">
         <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="hw-v3-chevron">
@@ -458,8 +458,9 @@ STYLE = '''
   /* Shared chrome */
   /* hw-v3-title now uses the page-header label style (text-xs +
      text-gray-500 Tailwind classes on the <p>). Keep .hw-v3-title as
-     a marker class only — no extra typographic overrides. */
-  .hw-v3-title { margin:0; }
+     a marker class only — no extra typographic overrides except a
+     no-wrap rule so the pill widens to fit the title on one line. */
+  .hw-v3-title { margin:0; white-space:nowrap; }
   .hw-v3-head-live { margin-left:4px; }
   .hw-v3-toggle {
     margin-left:auto; background:transparent; border:none;
