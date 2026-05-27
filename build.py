@@ -415,15 +415,16 @@ STYLE = '''
      right edge; same anchor as expanded so on expand the widget grows
      leftward INTO logs without the right edge shifting. */
   @media (min-width:1536px) {
-    /* On 4K-class, JS measures the natural collapsed width once on
-       attach and sets BOTH `width` and `right` inline so the gap from
-       logs is always 12px AND width is a length value (animatable).
-       These fallbacks are used until JS runs. */
+    /* 4K-class: pill is FLUSH with the logs' right edge (overlays the
+       top-right of logs; does not exceed the log container). JS measures
+       and locks the collapsed width inline so it stays a length value
+       (animatable). The right anchor stays at 0 in both states; expand
+       grows the pill leftward over logs without shifting the right edge. */
     #hw-v3-pill.hw-v3-collapsed {
-      right:-140px; left:auto; width:128px; padding:10px 12px;
+      right:0; left:auto; width:max-content; padding:10px 12px;
     }
     .hw-v3-collapsed .hw-v3-head { display:flex; align-items:center; gap:8px; justify-content:space-between; }
-    .hw-v3-collapsed .hw-v3-rows { flex-direction:column; align-items:stretch; gap:10px; }
+    .hw-v3-collapsed .hw-v3-rows { flex-direction:column; align-items:stretch; gap:6px; }
     .hw-v3-collapsed .hw-v3-row { flex-direction:row; justify-content:space-between; gap:14px; }
   }
   /* EXPANDED — overlay; vertical stack with sparklines (logs unchanged) */
@@ -432,8 +433,9 @@ STYLE = '''
   }
   @media (min-width:1536px) {
     #hw-v3-pill.hw-v3-expanded {
-      /* Same right anchor as collapsed (JS-set inline) so the right edge
-         doesn't shift; only width grows leftward INTO logs (overlay). */
+      /* Same right anchor as collapsed (right:0) so the right edge stays
+         flush with logs; only width grows leftward INTO logs (overlay). */
+      right:0;
       left:auto;
       width:340px;
     }
@@ -746,10 +748,8 @@ SCRIPT = '''
   window.hwSetState = function (n) { applyState(n); };
 
   // 4K-class only: measure the pill's natural collapsed width and lock
-  // it (plus the right anchor) inline so:
-  //   - the gap between logs and the pill is always 12px regardless of
-  //     content width;
-  //   - width is a length value, so width transitions animate.
+  // it inline as a length value so width transitions can animate.
+  // (Right anchor is handled by CSS right:0 — pill is flush with logs.)
   function lockLgAnchor(pill) {
     if (!matchMedia('(min-width: 1536px)').matches) {
       pill.style.right = '';
@@ -758,13 +758,12 @@ SCRIPT = '''
     }
     var prevTrans = pill.style.transition;
     pill.style.transition = 'none';
-    pill.style.right = '';   // clear any prior inline so we measure cleanly
+    pill.style.right = '';   // CSS right:0 holds; no inline override
     pill.style.width = 'max-content';
     void pill.offsetWidth;   // force layout
     var w = pill.offsetWidth;
     pill.dataset.collapsedW = w;
     pill.style.width = w + 'px';
-    pill.style.right = -(12 + w) + 'px';
     void pill.offsetWidth;
     pill.style.transition = prevTrans;
   }

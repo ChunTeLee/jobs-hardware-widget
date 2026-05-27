@@ -39,27 +39,36 @@ touched X."
     without `requestAnimationFrame` (Chrome batches them)
   - Forgetting `void pill.offsetHeight` to force reflow between writes
 
-### 2. Gap between V3 pill and logs container = 12px on lg/4K
+### 2. V3 pill right edge is FLUSH with logs container right edge on lg/4K
 
-- **What:** On `≥1536px` viewports, the V3 collapsed pill sits exactly
-  12px to the right of the logs container's right edge. Not 20px, not 39px.
-- **Why:** User flagged a widened gap as "unwantedly changed" after a
-  width/anchor refactor.
-- **Established:** during the polish iteration where width:148 → max-content
+- **What:** On `≥1536px` viewports, the V3 pill's right edge is flush with
+  the logs container's right edge (overlay at top-right; pill does NOT
+  exceed the log container into the page margin). Applies in both
+  collapsed and expanded states.
+- **Why:** User originally wanted a 12px gap with the pill floating in the
+  margin; then changed the requirement to "align right edge with log right
+  edge" (pill overlays instead of floats outside).
+- **Established / changed:** updated this iteration (see commit).
 - **How to verify:**
   ```js
   var pill = document.getElementById('hw-v3-pill');
   var card = document.getElementById('hw-logs-card');
-  Math.round(pill.getBoundingClientRect().left - card.getBoundingClientRect().right)
-  // Must equal 12 (give or take 1px for subpixel rounding).
+  Math.round(pill.getBoundingClientRect().right - card.getBoundingClientRect().right)
+  // Must equal 0 (give or take 1px for subpixel rounding).
   ```
 - **Common ways it breaks:**
-  - Switching `width` from a fixed length to `max-content`/`auto` while
-    leaving `right` anchored at a fixed offset → left edge floats
-  - Removing the JS `lockLgAnchor` step that measures content width and
-    sets a matching `right` value
-  - Changes to `padding` on the pill that shift the inner content width
-    without re-anchoring
+  - Inline `right` override that doesn't equal 0 (lockLgAnchor used to
+    set `right:-(12+w)` — that's been removed; don't re-introduce it)
+  - CSS `right:-Npx` on the breakpoint rule (push pill into margin)
+
+### 2b. Inter-metric vertical spacing in V3 collapsed = 6px
+
+- **What:** On lg/4K collapsed pill, the vertical gap between the three
+  metric rows (GPU, MEM, CPU) is the tight `gap:6px`, not the looser
+  10px the first version had.
+- **Why:** User flagged the row spacing as too big.
+- **How to verify:** `getComputedStyle(document.querySelector('.hw-v3-collapsed .hw-v3-rows')).rowGap` → `"6px"`
+- **Common ways it breaks:** any refactor of the `.hw-v3-rows` CSS
 
 ### 3. Logs container width is NOT compromised by the widget
 
@@ -91,21 +100,26 @@ touched X."
   - Setting explicit `height: <generous-px>` for animation purposes
   - Leaving `min-height` on the pill from a previous experiment
 
-### 5. Logs container is fully visible (not partially clipped by widget)
+### 5. Logs main content area (header + log lines) is readable
 
-- **What:** The widget is overlay only when EXPANDED; collapsed widget
-  must never cover log content. On lg/4K it floats in the margin (not
-  overlapping logs at all).
+- **What:** On lg/4K, the V3 collapsed pill overlays the **top-right
+  corner** of the logs card (flush with right edge — see invariant #2).
+  That overlap is intentional and acceptable. What matters: the logs
+  HEADER ("Logs" title) and the visible log lines remain readable. The
+  pill must not extend so far left that it covers a meaningful column of
+  log content.
 - **How to verify:**
   ```js
   var pill = document.getElementById('hw-v3-pill');
   var card = document.getElementById('hw-logs-card');
-  // Collapsed: pill should be entirely to the right of logs
-  pill.getBoundingClientRect().left >= card.getBoundingClientRect().right
+  var cardRect = card.getBoundingClientRect();
+  var pillRect = pill.getBoundingClientRect();
+  // Pill should be in the right portion of logs, not crossing the midpoint.
+  pillRect.left > cardRect.left + cardRect.width * 0.5
   ```
 - **Common ways it breaks:**
-  - `right` anchor changes between states (right edge shifts on toggle —
-    user rejected this earlier)
+  - Pill width grows too large in collapsed state (should hug content)
+  - Pill anchor flips back to `left:0` (would push right edge way out)
 
 ### 6. Widget chrome matches page chrome
 
