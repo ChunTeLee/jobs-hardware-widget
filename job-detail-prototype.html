@@ -347,6 +347,35 @@
     .hw-v3-collapsed .hw-v3-rows { flex-direction:column; align-items:stretch; gap:6px; }
     .hw-v3-collapsed .hw-v3-row { flex-direction:row; justify-content:space-between; gap:14px; }
   }
+  /* COLLAPSED · lg/xl (Tailwind lg+xl, 1024–1535) — horizontal pill ABOVE
+     the logs container, right-aligned to the logs' right edge, with the
+     'Hardware Utilization' title visible. 10px gap between pill bottom
+     and logs top (layout gap = 10px; spacer height ≈ pill height). */
+  @media (min-width:1024px) and (max-width:1535.98px) {
+    .hw-v3-layout { gap:10px; }
+    .hw-v3-spacer { height:44px; }   /* matches collapsed horizontal pill height */
+    #hw-v3-pill.hw-v3-collapsed {
+      /* Override the md `width:420px` — hug content; right anchor (base
+         `right:0`) keeps the right edge flush with logs' right edge. */
+      flex-direction:row;
+      align-items:center;
+      width:max-content;
+      gap:18px;
+      padding:8px 14px;
+    }
+    /* Show the title head inline on the left of the row. */
+    .hw-v3-collapsed .hw-v3-head {
+      display:flex; flex-direction:row; align-items:center;
+      gap:8px; flex:none;
+    }
+    /* Metrics inline, no wrap. */
+    .hw-v3-collapsed .hw-v3-rows {
+      flex-direction:row; flex-wrap:nowrap; gap:14px; align-items:center;
+    }
+    .hw-v3-collapsed .hw-v3-row {
+      flex:none; flex-direction:row; gap:6px;
+    }
+  }
   /* EXPANDED — overlay; vertical stack with sparklines (logs unchanged) */
   #hw-v3-pill.hw-v3-expanded {
     right:0; width:100%; padding:12px 14px;
@@ -690,6 +719,22 @@
     pill.style.transition = prevTrans;
   }
 
+  // lg/xl (1024-1535): pill is position:absolute over a spacer that reserves
+  // its collapsed height. Layout gap = 10px → the gap between collapsed pill
+  // bottom and logs top is exactly 10px IF spacer height = pill height.
+  // Sync the spacer to the collapsed pill height after layout settles.
+  function syncLgSpacer() {
+    var pill = document.getElementById('hw-v3-pill');
+    var spacer = document.getElementById('hw-v3-spacer');
+    if (!pill || !spacer) return;
+    if (matchMedia('(min-width: 1024px) and (max-width: 1535.98px)').matches) {
+      void pill.offsetHeight;
+      spacer.style.height = pill.offsetHeight + 'px';
+    } else {
+      spacer.style.height = '';
+    }
+  }
+
   // V3 pill is a flex child of #hw-v3-layout (which wraps the logs card).
   // Move it into the layout on activate so it participates in real layout.
   function attachV3() {
@@ -704,6 +749,7 @@
     pill.classList.remove('hw-v3-expanded');
     v3Expanded = false;
     lockLgAnchor(pill);
+    syncLgSpacer();
   }
   function detachV3() {
     var pill   = document.getElementById('hw-v3-pill');
