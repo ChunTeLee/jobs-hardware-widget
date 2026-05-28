@@ -302,9 +302,9 @@ CONTROL = '''
   <!-- Segmented control: mutually-exclusive version choice -->
   <div style="display:flex;background:#161b22;border:1px solid #30363d;
               border-radius:8px;padding:3px;gap:3px;">
-    <button onclick="hwSetVersion('v1')" id="hw-ver-v1" class="hw-seg" style="flex:1;">V1 Bar</button>
-    <button onclick="hwSetVersion('v2')" id="hw-ver-v2" class="hw-seg" style="flex:1;">V2 Trend</button>
     <button onclick="hwSetVersion('v3')" id="hw-ver-v3" class="hw-seg" style="flex:1;">V3 Pill</button>
+    <button onclick="hwSetVersion('v2')" id="hw-ver-v2" class="hw-seg" style="flex:1;">V2 Trend</button>
+    <button onclick="hwSetVersion('v1')" id="hw-ver-v1" class="hw-seg" style="flex:1;">V1 Bar</button>
   </div>
 
   <!-- Contextual state toggle: hidden/collapsed until a version is active -->
@@ -456,6 +456,22 @@ STYLE = '''
     .hw-v3-collapsed .hw-v3-row {
       flex:none; flex-direction:row; gap:6px;
     }
+  }
+  /* >lg / 4K-class running-state polish: hide 'Live' text, smaller dot,
+     dot 5px next to the title. Scoped to ≥1536 so md/lg keep the badge
+     with text visible. */
+  @media (min-width:1536px) {
+    .hw-v3-collapsed .hw-v3-head { gap:5px; }
+    #hw-v3-live-badge { margin-left:0 !important; gap:0; }
+    #hw-v3-live-badge > span:first-child {
+      width:6px !important; height:6px !important;
+    }
+    /* Solid-dot child has explicit inline 8x8 — override to match. */
+    #hw-v3-live-badge > span:first-child > span:last-child {
+      width:6px !important; height:6px !important;
+    }
+    /* Hide the 'Live' text (second child of the badge wrapper). */
+    #hw-v3-live-badge > span:nth-child(2) { display:none !important; }
   }
   /* EXPANDED — overlay; vertical stack with sparklines (logs unchanged) */
   #hw-v3-pill.hw-v3-expanded {
@@ -941,7 +957,7 @@ SCRIPT = '''
   };
 
   document.addEventListener('DOMContentLoaded', function () {
-    hwSetVersion('v1');
+    hwSetVersion('v3');
     hwSetState('completed');
   });
 })();
