@@ -849,17 +849,31 @@ SCRIPT = '''
     if (spacer) spacer.style.display = 'none';
   }
 
-  // FLIP-style height animation: measure start (current) height, apply
-  // the new state, measure end (target) height, then animate height
-  // between explicit pixel values. After transition, clear the inline
-  // height so the pill is content-sized again (no empty space).
+  // FLIP-style animation: measure current dims, apply new state, measure
+  // target dims, lock to start, then on next frame set end. CSS transition
+  // animates between length values.
+  //
+  // Fast-toggle race: if the user clicks before the previous transition
+  // finishes, the previous toggle's pending rAF and cleanup listener can
+  // overwrite or short-circuit the new toggle, leaving the pill stuck mid-
+  // state. Track them in module-scope vars and cancel/detach on every new
+  // entry so only the most recent toggle has effect.
+  var v3PendingRAF = null;
+  var v3PendingCleanup = null;
   window.hwToggleV3 = function (ev) {
     if (ev) ev.stopPropagation();
     var pill = document.getElementById('hw-v3-pill');
     var btn  = document.getElementById('hw-v3-toggle');
     if (!pill) return;
 
+    // Cancel any pending pieces from the previous toggle so they don't
+    // race with this one.
+    if (v3PendingRAF !== null) { cancelAnimationFrame(v3PendingRAF); v3PendingRAF = null; }
+    if (v3PendingCleanup) { pill.removeEventListener('transitionend', v3PendingCleanup); v3PendingCleanup = null; }
+
     var isLg = matchMedia('(min-width: 1536px)').matches;
+    // Read the CURRENT animated dims (mid-transition gives the interpolated
+    // value, which is what we want as the FLIP start).
     var startH = pill.offsetHeight;
     var startW = pill.offsetWidth;
 
@@ -887,7 +901,8 @@ SCRIPT = '''
 
     // On the next animation frame, set END dimensions. The browser sees a
     // length→length change and runs the CSS transition smoothly.
-    requestAnimationFrame(function () {
+    v3PendingRAF = requestAnimationFrame(function () {
+      v3PendingRAF = null;
       pill.style.height = endH + 'px';
       if (isLg) pill.style.width = endW + 'px';
     });
@@ -896,8 +911,8 @@ SCRIPT = '''
     // content-sized height (no empty space). On lg, LOCK inline width to an
     // explicit pixel value — leaving it as CSS `width: max-content` can
     // resolve to a slightly different value than what we transitioned to,
-    // which makes the 12px gap between pill and logs drift after each cycle.
-    var cleanup = function (e) {
+    // which makes the 10px gap between pill and logs drift after each cycle.
+    v3PendingCleanup = function (e) {
       if (e.target !== pill || e.propertyName !== 'height') return;
       pill.style.height = '';
       if (isLg) {
@@ -905,9 +920,10 @@ SCRIPT = '''
       } else {
         pill.style.width = '';
       }
-      pill.removeEventListener('transitionend', cleanup);
+      pill.removeEventListener('transitionend', v3PendingCleanup);
+      v3PendingCleanup = null;
     };
-    pill.addEventListener('transitionend', cleanup);
+    pill.addEventListener('transitionend', v3PendingCleanup);
   };
 
   window.hwSetVersion = function (v) {
