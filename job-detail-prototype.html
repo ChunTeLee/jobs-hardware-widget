@@ -417,6 +417,12 @@
       width:340px;
     }
   }
+  /* lg (1024–1535): expanded keeps the same right edge AND the same
+     floating top as collapsed. JS sets inline top/width/height. Don't
+     let the base 420px width override JS's collapsedW. */
+  @media (min-width:1024px) and (max-width:1535.98px) {
+    #hw-v3-pill.hw-v3-expanded { width:auto; }
+  }
   .hw-v3-expanded .hw-v3-head {
     display:flex; align-items:center; gap:10px; justify-content:flex-start;
     margin-bottom:2px;
@@ -844,13 +850,21 @@
     if (v3PendingRAF !== null) { cancelAnimationFrame(v3PendingRAF); v3PendingRAF = null; }
     if (v3PendingCleanup) { pill.removeEventListener('transitionend', v3PendingCleanup); v3PendingCleanup = null; }
 
-    // lg (1024–1535): collapsed pill floats above logs (negative top) and
-    // expanded pill overlays logs top-right (top:0). Animate top+width.
+    // lg (1024–1535): collapsed pill floats above logs (negative top, lifted
+    // into header band's dead space). On expand it STAYS at the same top and
+    // same width; only height grows, so the pill grows DOWNWARD and overlays
+    // the top of logs without dropping or shrinking horizontally.
     if (isLgRange()) {
       var lgStartH = pill.offsetHeight;
       var lgStartW = pill.offsetWidth;
-      var lgStartTop = pill.getBoundingClientRect().top;
-      if (!v3Expanded) pill.dataset.collapsedW = lgStartW;
+      // Capture collapsed dims on first expand (anchor for both states)
+      if (!v3Expanded) {
+        pill.dataset.collapsedW = lgStartW;
+        pill.dataset.collapsedH = lgStartH;
+      }
+      var lockedW = +pill.dataset.collapsedW || lgStartW;
+      var lockedH = +pill.dataset.collapsedH || lgStartH;
+      var lockedTop = -(lockedH + 10);   // same in BOTH states
 
       v3Expanded = !v3Expanded;
       pill.classList.toggle('hw-v3-expanded', v3Expanded);
@@ -858,33 +872,26 @@
       if (btn) btn.title = v3Expanded ? 'Collapse' : 'Expand';
       applyState(currentState);
 
-      // Measure target dims with new class applied
-      pill.style.top = '';
-      pill.style.width = '';
+      // Measure target height with new class applied, width locked
+      pill.style.width = lockedW + 'px';
       pill.style.height = 'auto';
+      pill.style.top = lockedTop + 'px';
       void pill.offsetHeight;
-      var lgEndH = pill.offsetHeight;
-      var lgEndW = v3Expanded ? pill.offsetWidth : (+pill.dataset.collapsedW || pill.offsetWidth);
-      var lgEndTop = v3Expanded ? 0 : -(lgEndH + 10);
+      var lgEndH = v3Expanded ? pill.offsetHeight : lockedH;
 
-      // Lock to start dims (so transition has a length→length to animate)
+      // Lock to start height so transition has a length→length to animate
       pill.style.height = lgStartH + 'px';
-      pill.style.width  = lgStartW + 'px';
-      pill.style.top    = (lgStartTop - pill.parentElement.getBoundingClientRect().top) + 'px';
       void pill.offsetHeight;
 
       v3PendingRAF = requestAnimationFrame(function () {
         v3PendingRAF = null;
         pill.style.height = lgEndH + 'px';
-        pill.style.width  = lgEndW + 'px';
-        pill.style.top    = lgEndTop + 'px';
       });
 
       v3PendingCleanup = function (e) {
         if (e.target !== pill || e.propertyName !== 'height') return;
+        // Keep width + top locked; clear inline height to let content drive.
         pill.style.height = '';
-        pill.style.width  = v3Expanded ? '' : (lgEndW + 'px');
-        pill.style.top    = v3Expanded ? '0px' : (lgEndTop + 'px');
         pill.removeEventListener('transitionend', v3PendingCleanup);
         v3PendingCleanup = null;
       };
