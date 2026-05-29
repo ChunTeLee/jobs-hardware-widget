@@ -39,6 +39,48 @@ touched X."
     without `requestAnimationFrame` (Chrome batches them)
   - Forgetting `void pill.offsetHeight` to force reflow between writes
 
+### 1e. Live dot is 5px-right and 0px-vertically-offset from title
+
+- **What:** When `state === 'running'`, the pulsing green dot's center
+  must be exactly `5px` to the right of the title's right edge AND
+  vertically centered with the title's text (±2px). Holds in **every
+  state × every breakpoint × every variant** (V1, V2, V3 collapsed, V3
+  expanded; sm/md/lg/2xl).
+- **Why:** The first sweep at this checked only the horizontal gap and
+  missed the lg-specific bug where `align-items:flex-start` (used to
+  anchor the title during the FLIP animation) top-aligned the dot,
+  putting its center 5px above the title's visual center.
+- **Established:** this iteration. Earlier 4a (skill) checked x only.
+- **How to verify (BOTH axes; run at lg + >lg in both states):**
+  ```js
+  hwSetState('running');
+  await new Promise(r => setTimeout(r, 200));
+  function probe() {
+    var dot = document.querySelector('#hw-v3-live-badge > span');
+    var title = document.querySelector('#hw-v3-pill .hw-v3-title');
+    var d = dot.getBoundingClientRect(), t = title.getBoundingClientRect();
+    return {
+      x_gap: Math.round(d.left - t.right),                         // must be 5
+      y_offset: Math.round((d.top+d.bottom)/2 - (t.top+t.bottom)/2) // must be 0±2
+    };
+  }
+  // collapsed:
+  probe();
+  // toggle to expanded, sample again:
+  hwToggleV3(); await new Promise(r => setTimeout(r, 400));
+  probe();
+  ```
+  Both probes must satisfy `x_gap === 5 && Math.abs(y_offset) <= 2`.
+- **Common ways it breaks:**
+  - Pill uses `align-items:flex-start` (correct for title anchoring) but
+    no compensating `margin-top` on the badge — dot floats to top of
+    title's line-box. Add `margin-top: 5px` (for 16px line-height title
+    + 6px dot).
+  - Stale `margin-left:4px` (or any other) on `.hw-v3-head-live`.
+  - Parent flex `gap` raised above 5 without a matching negative
+    `margin-left` on the badge.
+  - Dot size changed from 6 without re-tuning `margin-top`.
+
 ### 1d. Title stays anchored across expand/collapse (zero vertical shift)
 
 - **What:** During the entire expand and collapse animation, the

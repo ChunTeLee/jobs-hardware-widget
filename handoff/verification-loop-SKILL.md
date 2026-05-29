@@ -116,6 +116,37 @@ Reliable checks:
   good screenshot.
 - Read `getComputedStyle(el).gap / margin / padding` of containers.
 
+**Always check BOTH axes when checking element-to-element alignment.**
+A single-axis assertion like "dot is 5px right of title" passes even
+when the dot is floating above the title baseline. The class of bug
+that hides under one-axis checks:
+
+- Parent flex container uses `align-items: flex-start` (e.g. to anchor
+  one element during animation) → small siblings top-align to the
+  taller sibling's line-box top, ~half their height-difference above
+  the visual center.
+- Parent uses `align-items: baseline` but one child has no text baseline
+  (icon-only spans default to bottom-edge baseline) → icon hangs below
+  text.
+
+Canonical 2D check pattern for "X sits 5px right of Y, vertically
+centered with Y":
+
+```js
+var dr = X.getBoundingClientRect(), tr = Y.getBoundingClientRect();
+var x_gap = Math.round(dr.left - tr.right);                          // expected horizontal
+var y_offset = Math.round((dr.top+dr.bottom)/2 - (tr.top+tr.bottom)/2); // 0±2
+// assert x_gap === expected && Math.abs(y_offset) <= 2
+```
+
+Apply this whenever an invariant says "next to" / "beside" / "X px from
+Y" — not just "X px gap" — and run it in every state (collapsed,
+expanded, hovered, focused) where both elements are visible.
+
+**Heuristic when adding a "next to" invariant:** if the verifier reads
+only one axis, it's incomplete. Add the orthogonal axis assertion or
+the bug will ship.
+
 ### Colors / typography
 
 - `getComputedStyle(el).color / backgroundColor / borderColor / fontSize /

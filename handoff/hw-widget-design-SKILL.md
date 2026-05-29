@@ -101,14 +101,20 @@ scale.
   / V3 expanded).
 - **Visible only when** `state === 'running'`. Hidden display:none
   otherwise.
-- **How to verify:** measure `dot.left - title.right` in each context
-  with state=running:
+- **How to verify (BOTH axes — single-axis check missed an lg
+  alignment bug):** measure x-gap AND y-offset in every context with
+  state=running:
   ```js
-  var dot = document.querySelector('#hw-v3-live-badge span');
-  var title = document.querySelector('#hw-v3-pill .hw-v3-title');
-  Math.round(dot.getBoundingClientRect().left - title.getBoundingClientRect().right)
-  // must be 5
+  var d = document.querySelector('#hw-v3-live-badge > span').getBoundingClientRect();
+  var t = document.querySelector('#hw-v3-pill .hw-v3-title').getBoundingClientRect();
+  ({
+    x_gap:    Math.round(d.left - t.right),                          // must be 5
+    y_offset: Math.round((d.top+d.bottom)/2 - (t.top+t.bottom)/2)    // must be 0 ±2
+  })
   ```
+  Run in collapsed AND expanded for V3, plus V1 and V2. All must pass
+  both assertions. Checking only `x_gap` is incomplete and lets the
+  dot float above the title's text center.
 - **Common ways it breaks:** leftover `margin-left` on `.hw-v3-head-live`
   (was 4px historically); the badge's own internal `gap` from when "Live"
   text was a sibling; head/pill flex gap accidentally bumped above 5
