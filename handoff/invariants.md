@@ -144,7 +144,37 @@ touched X."
   - Adding new async steps (timeouts, microtasks) inside `hwToggleV3`
     without making them cancelable too
 
-### 1b. V3 lg collapsed: floats INSIDE the metadata header band (row-2)
+### 1b'. V3 lg-NARROW (1024–1279): own row above logs, left-aligned
+
+- **What:** At `1024 ≤ vw ≤ 1279`, the V3 pill takes its OWN vertical
+  row above the logs container. Pill is left-aligned (left edge = logs
+  left edge). 10px gap between pill bottom and logs top. The pill MUST
+  NOT overlap the page-header metadata band (no dead space exists at
+  this viewport because the Command field has wrapped into row-2 of
+  the band).
+- **Why:** User-reported at vw=1024 — the floating widget overlapped
+  Env vars / Secrets text. "No empty space" for the widget to float into.
+- **Established:** this iteration.
+- **How to verify:**
+  ```js
+  var band = document.querySelector('.text-smd.flex.flex-wrap.gap-x-10');
+  var pill = document.getElementById('hw-v3-pill');
+  var card = document.getElementById('hw-logs-card');
+  var b = band.getBoundingClientRect();
+  var p = pill.getBoundingClientRect();
+  var c = card.getBoundingClientRect();
+  ({
+    leftAligned: Math.round(p.left - c.left),    // must be 0
+    gapToLogs:   Math.round(c.top - p.bottom),    // must be 10
+    notOverlapsBand: p.top >= b.bottom            // must be true
+  })
+  ```
+- **Common ways it breaks:**
+  - Hiding the spacer at lg-narrow (logs collapse upward, no row reserved).
+  - Anchoring `right:0` instead of `left:0`.
+  - Setting `top:-(h+10)` via `lockLgFloat` (would intrude into band).
+
+### 1b. V3 lg-WIDE collapsed (1280-1535): floats INSIDE header band row-2
 
 - **What:** On `1024–1535px` viewports, the V3 collapsed pill is a child
   of `#hw-meta-band` (the page-header metadata flex-wrap row with

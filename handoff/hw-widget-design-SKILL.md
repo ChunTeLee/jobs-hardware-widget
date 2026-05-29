@@ -156,17 +156,32 @@ in the logs-card DOM.
 |-----------------------------|--------------------------------------------------------|---------------------------------------------------------------------------------------------------|
 | **sm < 768**                | Full-width row above logs, horizontal chips            | Same width, grows downward into logs (overlay)                                                    |
 | **md 768–1023**             | 420px row above logs, right-aligned                    | Same anchor, grows down                                                                           |
-| **lg 1024–1535**            | Horizontal row floating with inline `top:-(h+10)` so the pill's top intrudes into the page-header band's row-2 dead space; right edge flush with logs.right; 10px visible gap to logs | **Same top, same width** — only height grows. Pill grows downward, overlaying logs top. NEVER drops to logs.top, NEVER shrinks horizontally. |
+| **lg-narrow 1024–1279**    | Horizontal row above logs, **left-aligned** to logs.left. Pill takes its own vertical row (spacer reserves height). Logs are pushed down by ~pillH + 10. Inline `top:0`. | Same top + same width; height grows. Overlays the top of logs (logs visually slide under the pill). |
+| **lg-wide 1280–1535**       | Horizontal row floating with inline `top:-(h+10)` so the pill's top intrudes into the page-header band's row-2 dead space; right edge flush with logs.right; 10px visible gap to logs | **Same top, same width** — only height grows. Pill grows downward, overlaying logs top. NEVER drops to logs.top, NEVER shrinks horizontally. |
 | **2xl ≥1536** (4K-class)    | Vertical pill floating in the right page margin, 10px past logs.right; width = max-content captured by `lockLgAnchor()`; right edge `-(W+10)` | Right edge stays in margin (`right:-(W+10)`); width grows from W → 340px, pulling LEFT edge into logs — overlay without right-edge shift |
 
-**lg-specific don'ts:**
-- Don't reparent the pill into `#hw-meta-band` (the page-header band).
-  That was tried and rejected — the pill should not be coded inside the
-  header group.
-- Don't add a spacer (`.hw-v3-spacer { display:none }` on lg) — logs sit
-  at their natural position; the pill floats over the band/logs boundary.
+**lg-narrow vs lg-wide — why split:** at 1024–1279, the page-header's
+Command field wraps to row-2 of the band, consuming most of that row.
+Less than the pill's width remains as dead space, so the floating-into-
+header trick used at lg-wide would overlap Env vars / Secrets text. At
+lg-narrow the pill therefore takes its own row above logs (left-aligned,
+spacer reserves vertical room). At lg-wide the Command field fits on
+row-1; row-2 is mostly empty; the pill floats into that dead space
+(right-aligned, no extra vertical space).
+
+**lg-wide don'ts:**
+- Don't reparent the pill into the page-header DOM. That was tried and
+  rejected — the pill should not be coded inside the header group.
+- Don't show the spacer (`.hw-v3-spacer { display:none }` at lg-wide) —
+  logs sit at their natural position; the pill floats over the
+  band/logs boundary.
 - Don't reset `top:0` on expand. Lock `top: -(collapsedH + 10)` across
   BOTH states; only height animates.
+
+**lg-narrow don'ts:**
+- Don't anchor right. Anchor LEFT (`left:0; right:auto`).
+- Don't try to intrude into the band — there's no dead space there.
+- Don't hide the spacer; it reserves the vertical row.
 
 **Key JS hooks:**
 - `lockLgAnchor(pill)` — 2xl only; sets inline `right:-(W+10)` and

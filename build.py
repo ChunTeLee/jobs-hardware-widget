@@ -430,15 +430,11 @@ STYLE = '''
     .hw-v3-collapsed .hw-v3-rows { flex-direction:column; align-items:stretch; gap:6px; }
     .hw-v3-collapsed .hw-v3-row { flex-direction:row; justify-content:space-between; gap:14px; }
   }
-  /* COLLAPSED · lg/xl (Tailwind lg+xl, 1024–1535) — pill FLOATS ABOVE
-     the logs container with a 10px visible gap, but its TOP edge sits
-     in the page-header metadata band's row-2 dead space so no new
-     vertical space is reserved. The pill is position:absolute inside
-     #hw-v3-layout with an inline `top: -(pillH + 10)` set by JS
-     (lockLgFloat). No spacer is reserved. */
+  /* COLLAPSED · lg/xl (Tailwind lg+xl, 1024–1535) — SHARED pill chrome:
+     horizontal layout, content-hug width, ordering, chip styling.
+     The container anchor (left vs right, float vs own row) is set by
+     the two breakpoint-specific blocks BELOW. */
   @media (min-width:1024px) and (max-width:1535.98px) {
-    .hw-v3-layout { gap:0; }
-    .hw-v3-spacer { display:none; }   /* logs sit at natural top */
     #hw-v3-pill.hw-v3-collapsed {
       flex-direction:row;
       /* CRITICAL: flex-start, NOT center. With center, when the pill is
@@ -455,7 +451,8 @@ STYLE = '''
       /* padding-top MUST match the expanded padding-top below (both 10px)
          so the title sits at the same y in both states — zero shift. */
       padding:10px 6px 10px 14px;
-      right:0;       /* anchor to logs.right */
+      /* Container anchor (right:0 for wide lg float, left:0 for narrow
+         lg own-row) is set in the breakpoint-specific blocks below. */
     }
     /* Pull the chevron closer to CPU so the right-side dead space is
        small without affecting the title→chip and chip→chip rhythm. */
@@ -499,6 +496,29 @@ STYLE = '''
     }
     .hw-v3-collapsed .hw-v3-rows { order:3; }
     .hw-v3-collapsed .hw-v3-toggle { order:4; }
+  }
+  /* lg-NARROW (1024–1279) — Command field wraps to row-2 of the header
+     band, leaving no dead space for the pill. So the pill takes its own
+     row above logs, anchored LEFT, with a 10px visible gap to logs.
+     A spacer reserves vertical room (logs are pushed down, unlike the
+     wide-lg case where the pill intrudes into header dead space).
+     JS sets `top:0` (sits in spacer slot) and clears any negative top
+     left over from a wide-lg cycle. */
+  @media (min-width:1024px) and (max-width:1279.98px) {
+    .hw-v3-layout { gap:10px; }
+    .hw-v3-spacer { display:block; }      /* reserves vertical room */
+    #hw-v3-pill.hw-v3-collapsed { left:0; right:auto; }
+    #hw-v3-pill.hw-v3-expanded  { left:0; right:auto; }
+  }
+  /* lg-WIDE (1280–1535) — Command stays on row-1 of the header band,
+     leaving dead space on row-2 for the pill to FLOAT into. Pill is
+     anchored RIGHT (flush with logs' right edge), with inline
+     `top:-(h+10)` set by lockLgFloat so its top intrudes upward into
+     the band's row-2 area. Logs sit at their natural top. */
+  @media (min-width:1280px) and (max-width:1535.98px) {
+    .hw-v3-layout { gap:0; }
+    .hw-v3-spacer { display:none; }
+    #hw-v3-pill.hw-v3-collapsed { right:0; left:auto; }
   }
   /* >lg / 4K-class running-state polish: dot is 6×6 from badges() now,
      no Live text to hide. Just tighten the head gap to 5px. */
@@ -868,15 +888,15 @@ SCRIPT = '''
     pill.style.transition = prevTrans;
   }
 
-  // lg/xl (1024-1535): pill is position:absolute over a spacer that reserves
-  // its collapsed height. Layout gap = 10px → the gap between collapsed pill
-  // bottom and logs top is exactly 10px IF spacer height = pill height.
-  // Sync the spacer to the collapsed pill height after layout settles.
+  // lg-NARROW (1024-1279) only: pill is position:absolute over a spacer
+  // that reserves its collapsed height. Layout gap = 10px → the gap
+  // between pill bottom and logs top = 10px IF spacer height = pill height.
+  // At lg-WIDE the pill floats into header dead space; no spacer needed.
   function syncLgSpacer() {
     var pill = document.getElementById('hw-v3-pill');
     var spacer = document.getElementById('hw-v3-spacer');
     if (!pill || !spacer) return;
-    if (matchMedia('(min-width: 1024px) and (max-width: 1535.98px)').matches) {
+    if (isLgNarrow()) {
       void pill.offsetHeight;
       spacer.style.height = pill.offsetHeight + 'px';
     } else {
@@ -887,24 +907,35 @@ SCRIPT = '''
   function isLgRange() {
     return matchMedia('(min-width: 1024px) and (max-width: 1535.98px)').matches;
   }
+  function isLgWide() {
+    return matchMedia('(min-width: 1280px) and (max-width: 1535.98px)').matches;
+  }
+  function isLgNarrow() {
+    return matchMedia('(min-width: 1024px) and (max-width: 1279.98px)').matches;
+  }
 
-  // lg (1024–1535): pill floats ABOVE logs by 10px (visible gap) but its
-  // top edge intrudes UPWARD into the header band's row-2 dead space,
-  // so no extra vertical space is reserved. Inline `top: -(h + 10)`
-  // (relative to #hw-v3-layout, whose top edge is logs.top).
+  // lg-WIDE only (1280–1535): pill floats ABOVE logs by 10px (visible
+  // gap) but its top edge intrudes UPWARD into the header band's row-2
+  // dead space, so no extra vertical space is reserved. Inline
+  // `top: -(h + 10)` (relative to #hw-v3-layout = logs.top).
+  // At lg-NARROW, the pill sits at top:0 of its own spacer slot — no
+  // negative top is applied.
   function lockLgFloat(pill) {
-    if (!isLgRange()) {
-      // Don't touch top here; >lg / md / sm manage their own anchoring.
-      return;
+    if (isLgWide()) {
+      var prevTrans = pill.style.transition;
+      pill.style.transition = 'none';
+      pill.style.top = '';
+      void pill.offsetHeight;
+      var h = pill.offsetHeight;
+      pill.style.top = -(h + 10) + 'px';
+      void pill.offsetHeight;
+      pill.style.transition = prevTrans;
+    } else if (isLgNarrow()) {
+      // Own-row layout: pill sits at top of its layout slot. Clear any
+      // negative top carried over from a wide-lg cycle.
+      pill.style.top = '0px';
     }
-    var prevTrans = pill.style.transition;
-    pill.style.transition = 'none';
-    pill.style.top = '';
-    void pill.offsetHeight;
-    var h = pill.offsetHeight;
-    pill.style.top = -(h + 10) + 'px';
-    void pill.offsetHeight;
-    pill.style.transition = prevTrans;
+    // md/sm/>lg manage their own anchoring elsewhere.
   }
 
   // V3 pill is a flex child of #hw-v3-layout (which wraps the logs card).
@@ -980,7 +1011,13 @@ SCRIPT = '''
       }
       var lockedW = +pill.dataset.collapsedW || lgStartW;
       var lockedH = +pill.dataset.collapsedH || lgStartH;
-      var lockedTop = -(lockedH + 10);   // same in BOTH states
+      // lg-WIDE: pill floats above logs at top:-(h+10), intruding into
+      //          header band's row-2 dead space.
+      // lg-NARROW: pill sits in its own row above logs, top:0 of the
+      //          layout slot (spacer reserves the vertical room).
+      // BOTH states (collapsed/expanded) share the same lockedTop so the
+      // title's y stays constant across the animation.
+      var lockedTop = isLgWide() ? -(lockedH + 10) : 0;
 
       v3Expanded = !v3Expanded;
       pill.classList.toggle('hw-v3-expanded', v3Expanded);
