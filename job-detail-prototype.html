@@ -362,12 +362,18 @@
       align-items:center;
       width:max-content;
       gap:14px;
-      padding:6px 12px;
+      /* Asymmetric: minimal right padding + the rows→toggle gap (8px,
+         overridden below) keeps the CPU chip close to the right edge. */
+      padding:6px 4px 6px 12px;
       right:0;       /* anchor to logs.right */
     }
-    /* Metrics inline, no wrap. */
+    /* Tighten the gap between the metric rows and the chevron so the
+       CPU chip doesn't float far from the right border. */
+    .hw-v3-collapsed .hw-v3-rows + .hw-v3-toggle,
+    .hw-v3-collapsed #hw-v3-toggle { margin-left:-6px; }
+    /* Metrics inline, no wrap. Uniform 20px chip gap (GPU↔MEM↔CPU). */
     .hw-v3-collapsed .hw-v3-rows {
-      flex-direction:row; flex-wrap:nowrap; gap:14px; align-items:center;
+      flex-direction:row; flex-wrap:nowrap; gap:20px; align-items:center;
     }
     .hw-v3-collapsed .hw-v3-row { flex:none; flex-direction:row; gap:6px; }
     /* Flatten head into pill flex flow; head-live also display:contents so
