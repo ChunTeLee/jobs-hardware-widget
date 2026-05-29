@@ -375,6 +375,14 @@
     .hw-v3-collapsed .hw-v3-row {
       flex:none; flex-direction:row; gap:6px;
     }
+    /* Move the chevron to the far right of the pill (after the metric
+       chips) by flattening the head wrapper into the pill's flex flow
+       and ordering the children. */
+    .hw-v3-collapsed .hw-v3-head { display:contents; }
+    .hw-v3-collapsed .hw-v3-title { order:1; }
+    .hw-v3-collapsed .hw-v3-head-live { order:2; }
+    .hw-v3-collapsed .hw-v3-rows { order:3; }
+    .hw-v3-collapsed .hw-v3-toggle { order:4; }
   }
   /* >lg / 4K-class running-state polish: hide 'Live' text, smaller dot,
      dot 5px next to the title. Scoped to ≥1536 so md/lg keep the badge
@@ -392,9 +400,12 @@
     /* Hide the 'Live' text (second child of the badge wrapper). */
     #hw-v3-live-badge > span:nth-child(2) { display:none !important; }
   }
-  /* EXPANDED — overlay; vertical stack with sparklines (logs unchanged) */
+  /* EXPANDED — overlay; vertical stack with sparklines (logs unchanged).
+     Width capped at 420px so the expanded card doesn't stretch the full
+     width of logs on mobile/md/lg; max-width:100% clamps on narrow
+     screens. >lg overrides to 340 below. */
   #hw-v3-pill.hw-v3-expanded {
-    right:0; width:100%; padding:12px 14px;
+    right:0; width:420px; max-width:100%; padding:12px 14px;
   }
   @media (min-width:1536px) {
     #hw-v3-pill.hw-v3-expanded {
