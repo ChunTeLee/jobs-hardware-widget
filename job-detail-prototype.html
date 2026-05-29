@@ -340,9 +340,10 @@
     .hw-v3-collapsed .hw-v3-head { display:contents; }
     .hw-v3-collapsed .hw-v3-head-live { display:contents; }
     /* Title and context-note hidden in BOTH states at mobile (user
-       spec: "no title" at mobile). */
-    #hw-v3-pill .hw-v3-title { display:none; }
-    #hw-v3-pill #hw-v3-context-note { display:none; }
+       spec: "no title" at mobile). `!important` so no expanded-state
+       rule can accidentally re-show it via specificity. */
+    #hw-v3-pill .hw-v3-title { display:none !important; }
+    #hw-v3-pill #hw-v3-context-note { display:none !important; }
     /* live-badge first; chips middle; chevron pushed to right */
     .hw-v3-collapsed #hw-v3-live-badge { order:1; margin-top:5px; }
     .hw-v3-collapsed .hw-v3-rows { order:2; }
