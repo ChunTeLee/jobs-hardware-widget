@@ -408,10 +408,9 @@ STYLE = '''
   .hw-v3-collapsed .hw-v3-row-spacer { display:none; }
   .hw-v3-collapsed .hw-v3-agg { display:none; }
   .hw-v3-collapsed .hw-v3-spark { display:none; }
-  /* COLLAPSED · laptop (Tailwind md+, 768–1535) — horizontal, right-aligned */
-  @media (min-width:768px) {
-    #hw-v3-pill.hw-v3-collapsed { width:420px; }
-  }
+  /* The md+ width:420 rule that used to live here was removed: at md
+     (768-1023) the pill now uses the same content-hugging horizontal
+     chrome as lg-wide (set in the 768-1535 shared block below). */
   /* COLLAPSED · 4K-class (Tailwind 2xl, ≥1536) — vertical, narrow,
      FLOATS in the right page margin. Right edge anchored 160px past logs'
      right edge; same anchor as expanded so on expand the widget grows
@@ -430,11 +429,12 @@ STYLE = '''
     .hw-v3-collapsed .hw-v3-rows { flex-direction:column; align-items:stretch; gap:6px; }
     .hw-v3-collapsed .hw-v3-row { flex-direction:row; justify-content:space-between; gap:14px; }
   }
-  /* COLLAPSED · lg/xl (Tailwind lg+xl, 1024–1535) — SHARED pill chrome:
-     horizontal layout, content-hug width, ordering, chip styling.
-     The container anchor (left vs right, float vs own row) is set by
-     the two breakpoint-specific blocks BELOW. */
-  @media (min-width:1024px) and (max-width:1535.98px) {
+  /* COLLAPSED · md/lg/xl (Tailwind md+lg+xl, 768–1535) — SHARED pill
+     chrome: horizontal layout, content-hug width, ordering, chip
+     styling. md (768–1023) gets the same polished chrome as lg-wide.
+     The container anchor (left vs right, float-into-band vs own-row)
+     is set by the breakpoint-specific blocks BELOW. */
+  @media (min-width:768px) and (max-width:1535.98px) {
     #hw-v3-pill.hw-v3-collapsed {
       flex-direction:row;
       /* CRITICAL: flex-start, NOT center. With center, when the pill is
@@ -522,12 +522,16 @@ STYLE = '''
     }
     .hw-v3-collapsed #hw-v3-toggle { margin-left:0; }
   }
-  /* lg-WIDE (1280–1535) — Command stays on row-1 of the header band,
-     leaving dead space on row-2 for the pill to FLOAT into. Pill is
-     anchored RIGHT (flush with logs' right edge), with inline
-     `top:-(h+10)` set by lockLgFloat so its top intrudes upward into
-     the band's row-2 area. Logs sit at their natural top. */
-  @media (min-width:1280px) and (max-width:1535.98px) {
+  /* FLOAT-INTO-BAND ranges — md (768-1023) AND lg-wide (1280-1535).
+     At both, the header band has enough dead space on its trailing row
+     for the pill to float into. Pill is anchored RIGHT (flush with
+     logs' right edge), with inline `top:-(h+10)` set by lockLgFloat so
+     its top intrudes upward into the band. Logs sit at their natural
+     top — no spacer reserved. (1024-1279 is the gap between these two:
+     there the Command field wraps and consumes the dead space, so the
+     pill takes its own row above logs — see the lg-NARROW block above.) */
+  @media (min-width:768px) and (max-width:1023.98px),
+         (min-width:1280px) and (max-width:1535.98px) {
     .hw-v3-layout { gap:0; }
     .hw-v3-spacer { display:none; }
     #hw-v3-pill.hw-v3-collapsed { right:0; left:auto; }
@@ -559,10 +563,10 @@ STYLE = '''
      let the base 420px width override JS's collapsedW. Padding matches
      the collapsed horizontal padding (14px L / 6px R) so the border
      doesn't visually shift between states. */
-  @media (min-width:1024px) and (max-width:1535.98px) {
-    /* JS controls width on lg (locks collapsedW across both states).
-       Don't let base 420px override. Padding is set per-sub-range
-       below (lg-narrow uses symmetric 14L/14R; lg-wide uses 14L/6R). */
+  @media (min-width:768px) and (max-width:1535.98px) {
+    /* JS controls width on md+lg (locks collapsedW across both states).
+       Don't let the legacy 420px rule override. Padding is set per
+       sub-range below. */
     #hw-v3-pill.hw-v3-expanded { width:auto; }
   }
   @media (min-width:1024px) and (max-width:1279.98px) {
@@ -570,9 +574,10 @@ STYLE = '''
        surface is 10px (top padding, bottom padding, row→row gap). */
     #hw-v3-pill.hw-v3-expanded { padding:10px 14px; }
   }
-  @media (min-width:1280px) and (max-width:1535.98px) {
-    /* lg-wide expanded — asymmetric L/R (right minimal because pill is
-       anchored to logs.right), but vertical surfaces all 10px. */
+  @media (min-width:768px) and (max-width:1023.98px),
+         (min-width:1280px) and (max-width:1535.98px) {
+    /* md AND lg-wide expanded — asymmetric L/R (right minimal because
+       pill is anchored to logs.right), but vertical surfaces all 10px. */
     #hw-v3-pill.hw-v3-expanded { padding:10px 6px 10px 14px; }
   }
   .hw-v3-expanded .hw-v3-head {
@@ -943,12 +948,23 @@ SCRIPT = '''
     }
   }
 
+  // Anchored-pill range: md (768–1023) + lg (1024–1535). All these
+  // viewports use the same polished horizontal chrome and the same
+  // FLIP toggle path.
   function isLgRange() {
-    return matchMedia('(min-width: 1024px) and (max-width: 1535.98px)').matches;
+    return matchMedia('(min-width: 768px) and (max-width: 1535.98px)').matches;
   }
+  // Float-into-band: pill is anchored RIGHT to logs.right, with
+  // inline `top:-(h+10)` so its top intrudes upward into the header
+  // band's trailing-row dead space. Applies at md (768–1023) AND
+  // lg-wide (1280–1535). The gap range (1024–1279) is lg-narrow.
   function isLgWide() {
-    return matchMedia('(min-width: 1280px) and (max-width: 1535.98px)').matches;
+    return matchMedia('(min-width: 768px) and (max-width: 1023.98px)').matches
+        || matchMedia('(min-width: 1280px) and (max-width: 1535.98px)').matches;
   }
+  // Own-row above logs: pill is anchored LEFT, takes its own row
+  // (spacer reserves vertical room) because Command wraps into the
+  // header band's row-2 here, leaving no dead space.
   function isLgNarrow() {
     return matchMedia('(min-width: 1024px) and (max-width: 1279.98px)').matches;
   }
