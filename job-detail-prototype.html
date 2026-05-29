@@ -994,6 +994,13 @@
       var b = document.getElementById('hw-ver-' + k);
       if (b) b.classList.toggle('active', k === v);
     });
+    // hw-v3-wrap is only a mount slot — the pill is moved into
+    // #hw-v3-layout by attachV3. Keeping the wrap display:block leaves an
+    // empty flex child in the page container, which still consumes one
+    // `gap-4` (16px) of vertical gap above AND below itself, doubling the
+    // header→logs gap. Keep it permanently hidden.
+    var v3wrap = document.getElementById('hw-v3-wrap');
+    if (v3wrap) v3wrap.style.display = 'none';
     if (v === 'v3') attachV3(); else detachV3();
     // Reveal the contextual state toggle now that a version is active
     document.getElementById('hw-state-tier').classList.add('open');
