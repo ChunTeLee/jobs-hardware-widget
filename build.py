@@ -408,6 +408,47 @@ STYLE = '''
   .hw-v3-collapsed .hw-v3-row-spacer { display:none; }
   .hw-v3-collapsed .hw-v3-agg { display:none; }
   .hw-v3-collapsed .hw-v3-spark { display:none; }
+  /* MOBILE (<768) — full-width row above logs. Pill uses the same
+     polished chrome as md/lg: head display:contents, 20px chip rhythm,
+     6×6 dot, chevron pulled right via margin-left:auto. Title is
+     HIDDEN at mobile (the live dot + chips communicate enough; the
+     viewport can't carry a label and still fit the chips). Spacer
+     reserves vertical room above logs (own-row treatment). */
+  @media (max-width:767.98px) {
+    .hw-v3-layout { gap:10px; }
+    .hw-v3-spacer { display:block; }
+    /* Pill spans the layout slot. */
+    #hw-v3-pill.hw-v3-collapsed { left:0; right:0; }
+    #hw-v3-pill.hw-v3-expanded  { left:0; right:0; padding:10px 14px; }
+    /* Override base mobile head:none — show its children inline as
+       direct flex items of the pill (same trick as 768-1535 shared). */
+    .hw-v3-collapsed .hw-v3-head { display:contents; }
+    .hw-v3-collapsed .hw-v3-head-live { display:contents; }
+    /* Title and context-note hidden in BOTH states at mobile (user
+       spec: "no title" at mobile). */
+    #hw-v3-pill .hw-v3-title { display:none; }
+    #hw-v3-pill #hw-v3-context-note { display:none; }
+    /* live-badge first; chips middle; chevron pushed to right */
+    .hw-v3-collapsed #hw-v3-live-badge { order:1; margin-top:5px; }
+    .hw-v3-collapsed .hw-v3-rows { order:2; }
+    .hw-v3-collapsed #hw-v3-toggle { order:3; margin-left:auto; }
+    /* Pill becomes a row flex (override base flex-direction:column). */
+    #hw-v3-pill.hw-v3-collapsed {
+      flex-direction:row;
+      align-items:flex-start;
+      gap:20px;
+      padding:10px 14px;
+    }
+    /* Chip rhythm — same H-MAJOR=20 / CHIP=6 tokens as other screens. */
+    .hw-v3-collapsed .hw-v3-rows {
+      display:flex; flex-direction:row; align-items:center;
+      flex-wrap:nowrap; gap:20px;
+    }
+    .hw-v3-collapsed .hw-v3-row {
+      flex:none; flex-direction:row; gap:6px; min-width:0;
+    }
+    .hw-v3-collapsed .hw-v3-row-head { flex:none; min-width:0; }
+  }
   /* The md+ width:420 rule that used to live here was removed: at md
      (768-1023) the pill now uses the same content-hugging horizontal
      chrome as lg-wide (set in the 768-1535 shared block below). */
@@ -932,15 +973,16 @@ SCRIPT = '''
     pill.style.transition = prevTrans;
   }
 
-  // lg-NARROW (1024-1279) only: pill is position:absolute over a spacer
-  // that reserves its collapsed height. Layout gap = 10px → the gap
-  // between pill bottom and logs top = 10px IF spacer height = pill height.
-  // At lg-WIDE the pill floats into header dead space; no spacer needed.
+  // Own-row layout (lg-narrow OR mobile): pill is position:absolute
+  // over a spacer that reserves its collapsed height. Layout gap = 10px
+  // → the gap between pill bottom and logs top = 10px IF spacer height
+  // = pill height. At md / lg-wide the pill floats into header dead
+  // space; no spacer needed.
   function syncLgSpacer() {
     var pill = document.getElementById('hw-v3-pill');
     var spacer = document.getElementById('hw-v3-spacer');
     if (!pill || !spacer) return;
-    if (isLgNarrow()) {
+    if (isLgNarrow() || isMobile()) {
       void pill.offsetHeight;
       spacer.style.height = pill.offsetHeight + 'px';
     } else {
@@ -948,11 +990,15 @@ SCRIPT = '''
     }
   }
 
-  // Anchored-pill range: md (768–1023) + lg (1024–1535). All these
-  // viewports use the same polished horizontal chrome and the same
-  // FLIP toggle path.
+  // Anchored-pill range: all viewports below 2xl (≥1536). Mobile, md,
+  // lg-narrow, lg-wide all share the same polished horizontal chrome
+  // and FLIP toggle path. Only ≥1536 (handled by lockLgAnchor + its own
+  // FLIP) uses the page-margin vertical pill.
   function isLgRange() {
-    return matchMedia('(min-width: 768px) and (max-width: 1535.98px)').matches;
+    return matchMedia('(max-width: 1535.98px)').matches;
+  }
+  function isMobile() {
+    return matchMedia('(max-width: 767.98px)').matches;
   }
   // Float-into-band: pill is anchored RIGHT to logs.right, with
   // inline `top:-(h+10)` so its top intrudes upward into the header
