@@ -89,6 +89,60 @@ regressions. Run the check.
 
 ## Verification techniques by class
 
+### Transition-from-`none` / `auto` (the silent-snap gotcha)
+
+CSS transitions **do not interpolate** between certain "non-length"
+values and concrete ones. The two most common are:
+
+| Source state | Target state | Behavior |
+|---|---|---|
+| `transform: none` (no transform declared) | `transform: rotate(180deg)` | Snaps instantly — no rotation animation |
+| `height: auto` (no height declared) | `height: 200px` | Snaps instantly — no height animation |
+| `width: max-content` | `width: 340px` | May or may not animate depending on browser |
+| `display: none/block` | `display: block/none` | Never animates — CSS can't transition `display` |
+
+The component visually "snaps" or "jumps" between states, even though
+the eye expected a smooth transition. **The user reads the snap as a
+position shift** even when the bounding box is mathematically constant
+across frames — because the visual content reorganizes instantly.
+
+**Fix pattern:** explicitly declare a same-form starting value:
+
+```css
+/* WRONG — won't animate */
+.chevron                  { transition: transform .25s ease; }
+.expanded .chevron        { transform: rotate(180deg); }
+
+/* RIGHT — interpolates smoothly */
+.chevron                  { transform: rotate(0deg); transition: transform .25s ease; }
+.expanded .chevron        { transform: rotate(180deg); }
+```
+
+```css
+/* WRONG — height jumps */
+.panel                    { height: auto; transition: height .3s; }
+.expanded.panel           { height: 200px; }
+
+/* RIGHT — JS captures start height, sets a length, then transitions */
+/* (the FLIP pattern: measure → lock → next-frame → set end) */
+```
+
+**How to verify** (visible-tab required — hidden tabs throttle):
+sample `getComputedStyle(el).transform` (or whichever property) at
+several rAF intervals during the expected transition window. If frame 1
+already shows the END value, the transition didn't fire — it snapped.
+
+```js
+var samples = [];
+toggle();
+for (var i = 0; i < 10; i++) {
+  await new Promise(r => requestAnimationFrame(r));
+  samples.push(getComputedStyle(el).transform);
+}
+// Healthy: samples show progression like rotate(20deg), rotate(45deg)...
+// Snap bug: samples[0] is already rotate(180deg).
+```
+
 ### Animation / transition smoothness
 
 JS measurement is unreliable in two ways:

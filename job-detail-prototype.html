@@ -523,7 +523,16 @@
     display:inline-flex;
   }
   .hw-v3-toggle:hover { background:rgba(139,148,158,.15); color:#e6edf3; }
-  .hw-v3-chevron { transition:transform .25s ease; }
+  /* Explicit `rotate(0deg)` base (not unset / not `none`) is REQUIRED
+     for the transition to interpolate. Browsers don't animate from
+     `transform: none` to `transform: rotate(...)`; the value jumps
+     instantly to the end, making the chevron snap/flip rather than
+     rotate smoothly. The eye reads the snap as a position shift. */
+  .hw-v3-chevron {
+    transform: rotate(0deg);
+    transition: transform .25s ease;
+    transform-origin: 50% 50%;   /* rotate in place — no center drift */
+  }
   .hw-v3-expanded .hw-v3-chevron { transform:rotate(180deg); }
   .hw-v3-dot { width:8px; height:8px; border-radius:9999px; background:#6e7681; flex-shrink:0; }
   .hw-v3-row-label {
