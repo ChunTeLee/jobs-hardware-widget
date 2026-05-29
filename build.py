@@ -102,7 +102,13 @@ main_html, n2 = re.subn(
     r'(<p class="text-xs">Status</p>\s*<div) (class="flex items-center gap-1 text-green-600">)',
     r'\1 id="hw-status-label" \2',
     main_html, count=1)
-print(f"  Header status hooks: bar={n1} label={n2}")
+# Tag the metadata header band (Status / Created / Hardware / Image / Command /
+# Env vars / Secrets) so the V3 pill can float into its row-2 dead space on lg.
+main_html, n3 = re.subn(
+    r'<div class="text-smd flex flex-shrink-0 flex-wrap gap-x-10 gap-y-4 text-gray-500 \*:max-w-full">',
+    '<div id="hw-meta-band" class="text-smd flex flex-shrink-0 flex-wrap gap-x-10 gap-y-4 text-gray-500 *:max-w-full">',
+    main_html, count=1)
+print(f"  Header status hooks: bar={n1} label={n2} meta-band={n3}")
 
 # ── 3d. Tag the Logs card and wrap it in #hw-v3-layout (sibling slot for V3) ─
 main_html, c1 = re.subn(
@@ -428,42 +434,47 @@ STYLE = '''
     .hw-v3-collapsed .hw-v3-rows { flex-direction:column; align-items:stretch; gap:6px; }
     .hw-v3-collapsed .hw-v3-row { flex-direction:row; justify-content:space-between; gap:14px; }
   }
-  /* COLLAPSED · lg/xl (Tailwind lg+xl, 1024–1535) — horizontal pill ABOVE
-     the logs container, right-aligned to the logs' right edge, with the
-     'Hardware Utilization' title visible. 10px gap between pill bottom
-     and logs top (layout gap = 10px; spacer height ≈ pill height). */
+  /* COLLAPSED · lg/xl (Tailwind lg+xl, 1024–1535) — pill FLOATS INSIDE the
+     metadata header band (#hw-meta-band) as a normal flex-wrap peer of
+     the other metadata fields (Status / Created / Hardware / Image /
+     Command / Env vars / Secrets). It fills the row-2 dead space without
+     pushing logs down. JS appends the pill to #hw-meta-band on attach
+     and moves it back to #hw-v3-layout when expanded (overlay over logs).
+     */
   @media (min-width:1024px) and (max-width:1535.98px) {
-    .hw-v3-layout { gap:10px; }
-    .hw-v3-spacer { height:44px; }   /* matches collapsed horizontal pill height */
-    #hw-v3-pill.hw-v3-collapsed {
-      /* Override the md `width:420px` — hug content; right anchor (base
-         `right:0`) keeps the right edge flush with logs' right edge. */
+    /* No above-logs gap, no spacer height: logs sit at natural position. */
+    .hw-v3-layout { gap:0; }
+    .hw-v3-spacer { display:none; }
+    /* Collapsed pill: peer of header metadata fields (position:static
+       inside band). Override the base `position:absolute` rule.
+       margin-left:auto pushes the pill to the right edge of its row so
+       it sits in the row-2 dead space rather than packing left after the
+       other metadata fields. */
+    #hw-meta-band > #hw-v3-pill.hw-v3-collapsed {
+      position:static;
+      right:auto; left:auto; top:auto;
+      flex:none;
       flex-direction:row;
       align-items:center;
       width:max-content;
-      gap:18px;
-      padding:8px 14px;
-    }
-    /* Show the title head inline on the left of the row. */
-    .hw-v3-collapsed .hw-v3-head {
-      display:flex; flex-direction:row; align-items:center;
-      gap:8px; flex:none;
+      gap:10px;
+      padding:3px 10px;
+      align-self:center;
+      margin-left:auto;
     }
     /* Metrics inline, no wrap. */
-    .hw-v3-collapsed .hw-v3-rows {
-      flex-direction:row; flex-wrap:nowrap; gap:14px; align-items:center;
+    #hw-meta-band > .hw-v3-collapsed .hw-v3-rows {
+      flex-direction:row; flex-wrap:nowrap; gap:10px; align-items:center;
     }
-    .hw-v3-collapsed .hw-v3-row {
-      flex:none; flex-direction:row; gap:6px;
+    #hw-meta-band > .hw-v3-collapsed .hw-v3-row {
+      flex:none; flex-direction:row; gap:5px;
     }
-    /* Move the chevron to the far right of the pill (after the metric
-       chips) by flattening the head wrapper into the pill's flex flow
-       and ordering the children. */
-    .hw-v3-collapsed .hw-v3-head { display:contents; }
-    .hw-v3-collapsed .hw-v3-title { order:1; }
-    .hw-v3-collapsed .hw-v3-head-live { order:2; }
-    .hw-v3-collapsed .hw-v3-rows { order:3; }
-    .hw-v3-collapsed .hw-v3-toggle { order:4; }
+    /* Flatten head into the pill's flex flow + order so chevron sits last. */
+    #hw-meta-band > .hw-v3-collapsed .hw-v3-head { display:contents; }
+    #hw-meta-band > .hw-v3-collapsed .hw-v3-title { order:1; }
+    #hw-meta-band > .hw-v3-collapsed .hw-v3-head-live { order:2; }
+    #hw-meta-band > .hw-v3-collapsed .hw-v3-rows { order:3; }
+    #hw-meta-band > .hw-v3-collapsed .hw-v3-toggle { order:4; }
   }
   /* >lg / 4K-class running-state polish: hide 'Live' text, smaller dot,
      dot 5px next to the title. Scoped to ≥1536 so md/lg keep the badge
@@ -845,14 +856,32 @@ SCRIPT = '''
     }
   }
 
-  // V3 pill is a flex child of #hw-v3-layout (which wraps the logs card).
-  // Move it into the layout on activate so it participates in real layout.
+  // V3 pill hosts:
+  //   lg (1024–1535) collapsed -> #hw-meta-band  (floats in header row-2)
+  //   everything else          -> #hw-v3-layout  (sibling slot of logs card)
+  function isLgRange() {
+    return matchMedia('(min-width: 1024px) and (max-width: 1535.98px)').matches;
+  }
+  function v3CollapsedHost() {
+    var band = document.getElementById('hw-meta-band');
+    return (isLgRange() && band) ? band : document.getElementById('hw-v3-layout');
+  }
+  function v3ExpandedHost() { return document.getElementById('hw-v3-layout'); }
+
   function attachV3() {
     var pill   = document.getElementById('hw-v3-pill');
-    var layout = document.getElementById('hw-v3-layout');
     var spacer = document.getElementById('hw-v3-spacer');
-    if (!pill || !layout) return;
-    if (pill.parentElement !== layout) layout.insertBefore(pill, layout.firstChild);
+    if (!pill) return;
+    var host = v3CollapsedHost();
+    if (!host) return;
+    // Clear any inline width/height/right from previous host before move
+    pill.style.width = '';
+    pill.style.height = '';
+    pill.style.right = '';
+    if (pill.parentElement !== host) {
+      if (host.id === 'hw-meta-band') host.appendChild(pill);
+      else host.insertBefore(pill, host.firstChild);
+    }
     if (spacer) spacer.style.display = '';
     // Ensure collapsed state for the measurement
     pill.classList.add('hw-v3-collapsed');
@@ -897,6 +926,27 @@ SCRIPT = '''
     // race with this one.
     if (v3PendingRAF !== null) { cancelAnimationFrame(v3PendingRAF); v3PendingRAF = null; }
     if (v3PendingCleanup) { pill.removeEventListener('transitionend', v3PendingCleanup); v3PendingCleanup = null; }
+
+    // lg (1024–1535): collapsed lives inside the metadata band; expanded
+    // overlays the logs (in #hw-v3-layout). Reparenting changes the
+    // positioning context, which makes FLIP impractical — snap instead.
+    if (isLgRange()) {
+      v3Expanded = !v3Expanded;
+      pill.classList.toggle('hw-v3-expanded', v3Expanded);
+      pill.classList.toggle('hw-v3-collapsed', !v3Expanded);
+      if (btn) btn.title = v3Expanded ? 'Collapse' : 'Expand';
+      // Clear any leftover inline dims from a >lg cycle
+      pill.style.width = '';
+      pill.style.height = '';
+      pill.style.right = '';
+      var dest = v3Expanded ? v3ExpandedHost() : (document.getElementById('hw-meta-band') || v3ExpandedHost());
+      if (pill.parentElement !== dest) {
+        if (dest.id === 'hw-meta-band') dest.appendChild(pill);
+        else dest.insertBefore(pill, dest.firstChild);
+      }
+      applyState(currentState);
+      return;
+    }
 
     var isLg = matchMedia('(min-width: 1536px)').matches;
     // Read the CURRENT animated dims (mid-transition gives the interpolated
@@ -970,6 +1020,17 @@ SCRIPT = '''
   document.addEventListener('DOMContentLoaded', function () {
     hwSetVersion('v3');
     hwSetState('completed');
+  });
+
+  // Re-home the V3 pill on resize so crossing the lg/>lg boundary moves it
+  // between the metadata band (lg collapsed) and the logs layout slot.
+  var v3ResizeTimer = null;
+  window.addEventListener('resize', function () {
+    if (currentVersion !== 'v3') return;
+    if (v3ResizeTimer) clearTimeout(v3ResizeTimer);
+    v3ResizeTimer = setTimeout(function () {
+      if (!v3Expanded) attachV3();   // only safe to re-home when collapsed
+    }, 120);
   });
 })();
 </script>'''
