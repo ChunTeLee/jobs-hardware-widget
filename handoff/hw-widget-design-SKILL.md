@@ -36,6 +36,16 @@ looser) than "chip 1 → chip 2". The user *will* notice. Both 20.
 
 **No tightening one without the other.** If you reduce one, reduce both.
 
+**`min-width:80px` on chips is a mobile-only carryover** — it must be
+explicitly overridden in the lg block (`min-width:0` on both `.hw-v3-row`
+and `.hw-v3-row-head`). If you leave the mobile rule applying at lg,
+each chip is forced to ≥80px even when content is narrower, which adds
+invisible trailing space inside the chip. That trailing space then ADDS
+to the chip-to-chip flex gap, so chip→chip looks wider than title→chip
+even though both gaps are CSS-equal. (User-reported regression; the
+asymmetry is invisible from CSS inspection alone — measure
+`chip.right - val.right` to confirm trailing == 0.)
+
 ## 2. Padding (collapsed AND expanded must match horizontally)
 
 | State     | Padding (top right bottom left) |

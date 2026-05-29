@@ -375,7 +375,17 @@
     .hw-v3-collapsed .hw-v3-rows {
       flex-direction:row; flex-wrap:nowrap; gap:20px; align-items:center;
     }
-    .hw-v3-collapsed .hw-v3-row { flex:none; flex-direction:row; gap:6px; }
+    /* Override the mobile-base `min-width:80px` — at lg the chips must hug
+       their content (no trailing dead space inside the chip), otherwise
+       the chip-to-chip gap appears larger than title-to-chip even when
+       the CSS `gap` is equal. */
+    .hw-v3-collapsed .hw-v3-row {
+      flex:none; flex-direction:row; gap:6px;
+      min-width:0;
+    }
+    .hw-v3-collapsed .hw-v3-row-head {
+      flex:none; min-width:0;
+    }
     /* Flatten head into pill flex flow; head-live also display:contents so
        hidden badges/notes don't contribute phantom gaps. Hide
        context-note completely (always empty in lg-compact form). Set
