@@ -442,16 +442,16 @@ STYLE = '''
       flex-direction:row;
       align-items:center;
       width:max-content;
-      gap:14px;
-      /* Asymmetric: minimal right padding + the rows→toggle gap (8px,
-         overridden below) keeps the CPU chip close to the right edge. */
-      padding:6px 4px 6px 12px;
+      /* Pill internal gap matches the chip-to-chip gap so title→chip and
+         chip→chip look identical (avoids the "title gap looks different"
+         perception). */
+      gap:20px;
+      padding:8px 6px 8px 14px;
       right:0;       /* anchor to logs.right */
     }
-    /* Tighten the gap between the metric rows and the chevron so the
-       CPU chip doesn't float far from the right border. */
-    .hw-v3-collapsed .hw-v3-rows + .hw-v3-toggle,
-    .hw-v3-collapsed #hw-v3-toggle { margin-left:-6px; }
+    /* Pull the chevron closer to CPU so the right-side dead space is
+       small without affecting the title→chip and chip→chip rhythm. */
+    .hw-v3-collapsed #hw-v3-toggle { margin-left:-12px; }
     /* Metrics inline, no wrap. Uniform 20px chip gap (GPU↔MEM↔CPU). */
     .hw-v3-collapsed .hw-v3-rows {
       flex-direction:row; flex-wrap:nowrap; gap:20px; align-items:center;
@@ -506,9 +506,14 @@ STYLE = '''
   }
   /* lg (1024–1535): expanded keeps the same right edge AND the same
      floating top as collapsed. JS sets inline top/width/height. Don't
-     let the base 420px width override JS's collapsedW. */
+     let the base 420px width override JS's collapsedW. Padding matches
+     the collapsed horizontal padding (14px L / 6px R) so the border
+     doesn't visually shift between states. */
   @media (min-width:1024px) and (max-width:1535.98px) {
-    #hw-v3-pill.hw-v3-expanded { width:auto; }
+    #hw-v3-pill.hw-v3-expanded {
+      width:auto;
+      padding:12px 6px 12px 14px;
+    }
   }
   .hw-v3-expanded .hw-v3-head {
     display:flex; align-items:center; gap:10px; justify-content:flex-start;
