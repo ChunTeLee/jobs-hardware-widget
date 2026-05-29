@@ -132,6 +132,34 @@ sample `getComputedStyle(el).transform` (or whichever property) at
 several rAF intervals during the expected transition window. If frame 1
 already shows the END value, the transition didn't fire — it snapped.
 
+**Re-test AFTER every state change the element's parent might respond
+to.** A CSS transition can work cleanly on first toggle (after page
+load) and then snap on subsequent toggles if some intermediate event
+caused a parent reflow that reset the browser's transition tracking
+for that element. Common triggers:
+
+- A sibling element's `display` changing (`none` ↔ `flex/block`) —
+  flex layout recalc resets transforms on neighbours.
+- Calling `applyState` / `paint` / any function that writes to many
+  DOM properties at once.
+- Inserting or removing an element from a flex/grid line.
+
+Verification procedure for transitions that survive state changes:
+
+```js
+// 1. Verify frame-by-frame interpolation on COLD load:
+toggle(); sample 10 frames → must show progression
+// 2. Trigger the suspect state change:
+changeStateThatRepaintsParent();
+// 3. Re-verify the transition interpolates:
+toggle(); sample 10 frames → must STILL show progression
+```
+
+If step 3 snaps, the transition is fragile to parent reflows. **Fix:**
+promote the element to its own compositor layer with
+`will-change: transform` (or whichever property is being transitioned).
+This isolates it so parent reflows don't reset its transition state.
+
 ```js
 var samples = [];
 toggle();

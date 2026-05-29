@@ -527,11 +527,18 @@
      for the transition to interpolate. Browsers don't animate from
      `transform: none` to `transform: rotate(...)`; the value jumps
      instantly to the end, making the chevron snap/flip rather than
-     rotate smoothly. The eye reads the snap as a position shift. */
+     rotate smoothly. The eye reads the snap as a position shift.
+
+     `will-change: transform` promotes the chevron to its own compositor
+     layer so parent reflows (e.g. when `applyState` repaints sparklines
+     or shows/hides the live badge after a job-state toggle) don't
+     reset the chevron's CSS transition tracking. Without this, the
+     first expand/collapse after a state change can snap instantly. */
   .hw-v3-chevron {
     transform: rotate(0deg);
     transition: transform .25s ease;
-    transform-origin: 50% 50%;   /* rotate in place — no center drift */
+    transform-origin: 50% 50%;
+    will-change: transform;
   }
   .hw-v3-expanded .hw-v3-chevron { transform:rotate(180deg); }
   .hw-v3-dot { width:8px; height:8px; border-radius:9999px; background:#6e7681; flex-shrink:0; }
