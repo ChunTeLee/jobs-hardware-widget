@@ -102,13 +102,7 @@ main_html, n2 = re.subn(
     r'(<p class="text-xs">Status</p>\s*<div) (class="flex items-center gap-1 text-green-600">)',
     r'\1 id="hw-status-label" \2',
     main_html, count=1)
-# Tag the metadata header band (Status / Created / Hardware / Image / Command /
-# Env vars / Secrets) so the V3 pill can float into its row-2 dead space on lg.
-main_html, n3 = re.subn(
-    r'<div class="text-smd flex flex-shrink-0 flex-wrap gap-x-10 gap-y-4 text-gray-500 \*:max-w-full">',
-    '<div id="hw-meta-band" class="text-smd flex flex-shrink-0 flex-wrap gap-x-10 gap-y-4 text-gray-500 *:max-w-full">',
-    main_html, count=1)
-print(f"  Header status hooks: bar={n1} label={n2} meta-band={n3}")
+print(f"  Header status hooks: bar={n1} label={n2}")
 
 # ── 3d. Tag the Logs card and wrap it in #hw-v3-layout (sibling slot for V3) ─
 main_html, c1 = re.subn(
@@ -389,7 +383,8 @@ STYLE = '''
     box-shadow:0 4px 14px rgba(0,0,0,.35);
     cursor:pointer; user-select:none;
     display:flex; flex-direction:column; gap:10px;
-    transition:right  .3s cubic-bezier(0.4,0,0.2,1),
+    transition:top    .3s cubic-bezier(0.4,0,0.2,1),
+               right  .3s cubic-bezier(0.4,0,0.2,1),
                left   .3s cubic-bezier(0.4,0,0.2,1),
                width  .3s cubic-bezier(0.4,0,0.2,1),
                height .3s cubic-bezier(0.4,0,0.2,1),
@@ -434,47 +429,41 @@ STYLE = '''
     .hw-v3-collapsed .hw-v3-rows { flex-direction:column; align-items:stretch; gap:6px; }
     .hw-v3-collapsed .hw-v3-row { flex-direction:row; justify-content:space-between; gap:14px; }
   }
-  /* COLLAPSED · lg/xl (Tailwind lg+xl, 1024–1535) — pill FLOATS INSIDE the
-     metadata header band (#hw-meta-band) as a normal flex-wrap peer of
-     the other metadata fields (Status / Created / Hardware / Image /
-     Command / Env vars / Secrets). It fills the row-2 dead space without
-     pushing logs down. JS appends the pill to #hw-meta-band on attach
-     and moves it back to #hw-v3-layout when expanded (overlay over logs).
-     */
+  /* COLLAPSED · lg/xl (Tailwind lg+xl, 1024–1535) — pill FLOATS ABOVE
+     the logs container with a 10px visible gap, but its TOP edge sits
+     in the page-header metadata band's row-2 dead space so no new
+     vertical space is reserved. The pill is position:absolute inside
+     #hw-v3-layout with an inline `top: -(pillH + 10)` set by JS
+     (lockLgFloat). No spacer is reserved. */
   @media (min-width:1024px) and (max-width:1535.98px) {
-    /* No above-logs gap, no spacer height: logs sit at natural position. */
     .hw-v3-layout { gap:0; }
-    .hw-v3-spacer { display:none; }
-    /* Collapsed pill: peer of header metadata fields (position:static
-       inside band). Override the base `position:absolute` rule.
-       margin-left:auto pushes the pill to the right edge of its row so
-       it sits in the row-2 dead space rather than packing left after the
-       other metadata fields. */
-    #hw-meta-band > #hw-v3-pill.hw-v3-collapsed {
-      position:static;
-      right:auto; left:auto; top:auto;
-      flex:none;
+    .hw-v3-spacer { display:none; }   /* logs sit at natural top */
+    #hw-v3-pill.hw-v3-collapsed {
       flex-direction:row;
       align-items:center;
       width:max-content;
-      gap:10px;
-      padding:3px 10px;
-      align-self:center;
-      margin-left:auto;
+      gap:14px;
+      padding:6px 12px;
+      right:0;       /* anchor to logs.right */
     }
     /* Metrics inline, no wrap. */
-    #hw-meta-band > .hw-v3-collapsed .hw-v3-rows {
-      flex-direction:row; flex-wrap:nowrap; gap:10px; align-items:center;
+    .hw-v3-collapsed .hw-v3-rows {
+      flex-direction:row; flex-wrap:nowrap; gap:14px; align-items:center;
     }
-    #hw-meta-band > .hw-v3-collapsed .hw-v3-row {
-      flex:none; flex-direction:row; gap:5px;
-    }
-    /* Flatten head into the pill's flex flow + order so chevron sits last. */
-    #hw-meta-band > .hw-v3-collapsed .hw-v3-head { display:contents; }
-    #hw-meta-band > .hw-v3-collapsed .hw-v3-title { order:1; }
-    #hw-meta-band > .hw-v3-collapsed .hw-v3-head-live { order:2; }
-    #hw-meta-band > .hw-v3-collapsed .hw-v3-rows { order:3; }
-    #hw-meta-band > .hw-v3-collapsed .hw-v3-toggle { order:4; }
+    .hw-v3-collapsed .hw-v3-row { flex:none; flex-direction:row; gap:6px; }
+    /* Flatten head into pill flex flow; head-live also display:contents so
+       hidden badges/notes don't contribute phantom gaps. Hide
+       context-note completely (always empty in lg-compact form). Set
+       explicit order on each VISIBLE item so spacing is even (the empty
+       context-note span otherwise inherits order:0 and adds a 14px gap
+       before the title). */
+    .hw-v3-collapsed .hw-v3-head { display:contents; }
+    .hw-v3-collapsed .hw-v3-head-live { display:contents; }
+    .hw-v3-collapsed #hw-v3-context-note { display:none !important; }
+    .hw-v3-collapsed .hw-v3-title { order:1; }
+    .hw-v3-collapsed #hw-v3-live-badge { order:2; }
+    .hw-v3-collapsed .hw-v3-rows { order:3; }
+    .hw-v3-collapsed .hw-v3-toggle { order:4; }
   }
   /* >lg / 4K-class running-state polish: hide 'Live' text, smaller dot,
      dot 5px next to the title. Scoped to ≥1536 so md/lg keep the badge
@@ -856,38 +845,49 @@ SCRIPT = '''
     }
   }
 
-  // V3 pill hosts:
-  //   lg (1024–1535) collapsed -> #hw-meta-band  (floats in header row-2)
-  //   everything else          -> #hw-v3-layout  (sibling slot of logs card)
   function isLgRange() {
     return matchMedia('(min-width: 1024px) and (max-width: 1535.98px)').matches;
   }
-  function v3CollapsedHost() {
-    var band = document.getElementById('hw-meta-band');
-    return (isLgRange() && band) ? band : document.getElementById('hw-v3-layout');
-  }
-  function v3ExpandedHost() { return document.getElementById('hw-v3-layout'); }
 
+  // lg (1024–1535): pill floats ABOVE logs by 10px (visible gap) but its
+  // top edge intrudes UPWARD into the header band's row-2 dead space,
+  // so no extra vertical space is reserved. Inline `top: -(h + 10)`
+  // (relative to #hw-v3-layout, whose top edge is logs.top).
+  function lockLgFloat(pill) {
+    if (!isLgRange()) {
+      // Don't touch top here; >lg / md / sm manage their own anchoring.
+      return;
+    }
+    var prevTrans = pill.style.transition;
+    pill.style.transition = 'none';
+    pill.style.top = '';
+    void pill.offsetHeight;
+    var h = pill.offsetHeight;
+    pill.style.top = -(h + 10) + 'px';
+    void pill.offsetHeight;
+    pill.style.transition = prevTrans;
+  }
+
+  // V3 pill is a flex child of #hw-v3-layout (which wraps the logs card).
+  // Move it into the layout on activate so it participates in real layout.
   function attachV3() {
     var pill   = document.getElementById('hw-v3-pill');
+    var layout = document.getElementById('hw-v3-layout');
     var spacer = document.getElementById('hw-v3-spacer');
-    if (!pill) return;
-    var host = v3CollapsedHost();
-    if (!host) return;
-    // Clear any inline width/height/right from previous host before move
+    if (!pill || !layout) return;
+    // Clear inline carryover before reinsert
     pill.style.width = '';
     pill.style.height = '';
     pill.style.right = '';
-    if (pill.parentElement !== host) {
-      if (host.id === 'hw-meta-band') host.appendChild(pill);
-      else host.insertBefore(pill, host.firstChild);
-    }
+    pill.style.top = '';
+    if (pill.parentElement !== layout) layout.insertBefore(pill, layout.firstChild);
     if (spacer) spacer.style.display = '';
     // Ensure collapsed state for the measurement
     pill.classList.add('hw-v3-collapsed');
     pill.classList.remove('hw-v3-expanded');
     v3Expanded = false;
     lockLgAnchor(pill);
+    lockLgFloat(pill);
     syncLgSpacer();
   }
   function detachV3() {
@@ -927,24 +927,51 @@ SCRIPT = '''
     if (v3PendingRAF !== null) { cancelAnimationFrame(v3PendingRAF); v3PendingRAF = null; }
     if (v3PendingCleanup) { pill.removeEventListener('transitionend', v3PendingCleanup); v3PendingCleanup = null; }
 
-    // lg (1024–1535): collapsed lives inside the metadata band; expanded
-    // overlays the logs (in #hw-v3-layout). Reparenting changes the
-    // positioning context, which makes FLIP impractical — snap instead.
+    // lg (1024–1535): collapsed pill floats above logs (negative top) and
+    // expanded pill overlays logs top-right (top:0). Animate top+width.
     if (isLgRange()) {
+      var lgStartH = pill.offsetHeight;
+      var lgStartW = pill.offsetWidth;
+      var lgStartTop = pill.getBoundingClientRect().top;
+      if (!v3Expanded) pill.dataset.collapsedW = lgStartW;
+
       v3Expanded = !v3Expanded;
       pill.classList.toggle('hw-v3-expanded', v3Expanded);
       pill.classList.toggle('hw-v3-collapsed', !v3Expanded);
       if (btn) btn.title = v3Expanded ? 'Collapse' : 'Expand';
-      // Clear any leftover inline dims from a >lg cycle
-      pill.style.width = '';
-      pill.style.height = '';
-      pill.style.right = '';
-      var dest = v3Expanded ? v3ExpandedHost() : (document.getElementById('hw-meta-band') || v3ExpandedHost());
-      if (pill.parentElement !== dest) {
-        if (dest.id === 'hw-meta-band') dest.appendChild(pill);
-        else dest.insertBefore(pill, dest.firstChild);
-      }
       applyState(currentState);
+
+      // Measure target dims with new class applied
+      pill.style.top = '';
+      pill.style.width = '';
+      pill.style.height = 'auto';
+      void pill.offsetHeight;
+      var lgEndH = pill.offsetHeight;
+      var lgEndW = v3Expanded ? pill.offsetWidth : (+pill.dataset.collapsedW || pill.offsetWidth);
+      var lgEndTop = v3Expanded ? 0 : -(lgEndH + 10);
+
+      // Lock to start dims (so transition has a length→length to animate)
+      pill.style.height = lgStartH + 'px';
+      pill.style.width  = lgStartW + 'px';
+      pill.style.top    = (lgStartTop - pill.parentElement.getBoundingClientRect().top) + 'px';
+      void pill.offsetHeight;
+
+      v3PendingRAF = requestAnimationFrame(function () {
+        v3PendingRAF = null;
+        pill.style.height = lgEndH + 'px';
+        pill.style.width  = lgEndW + 'px';
+        pill.style.top    = lgEndTop + 'px';
+      });
+
+      v3PendingCleanup = function (e) {
+        if (e.target !== pill || e.propertyName !== 'height') return;
+        pill.style.height = '';
+        pill.style.width  = v3Expanded ? '' : (lgEndW + 'px');
+        pill.style.top    = v3Expanded ? '0px' : (lgEndTop + 'px');
+        pill.removeEventListener('transitionend', v3PendingCleanup);
+        v3PendingCleanup = null;
+      };
+      pill.addEventListener('transitionend', v3PendingCleanup);
       return;
     }
 
