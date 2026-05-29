@@ -146,6 +146,55 @@ in the logs-card DOM.
 - `pill.dataset.collapsedW` / `collapsedH` — captured on first attach;
   the FLIP animation reuses them so collapsed/expanded share an anchor.
 
+## 7a. Content-anchoring rule (the most basic mistake to avoid)
+
+**Any element that exists in BOTH the collapsed and expanded state must
+stay at the same viewport `top` across every frame of the transition —
+not just at the start and end.**
+
+In practice for V3 this means the **title** ("Hardware Utilization") and
+any other unchanged element (`Live` badge when present, chevron icon)
+must not slide vertically during the height animation.
+
+The class of mistake this catches: when the pill is mid-animation, its
+inner flex layout has *already* flipped to its target state, but the
+height is still locked to the SOURCE state's value. If `align-items` is
+`center` on the pill, the title gets vertically centered in a 207-tall
+pill that's about to shrink to 35 — i.e. it teleports ~90px down at t=0,
+then "rises" back during the animation. The user sees the title slam to
+the bottom of the pill and crawl back up. Basic, ugly, very visible.
+
+**Mandatory rules:**
+1. `align-items` MUST be `flex-start` on the collapsed pill, NOT `center`.
+   (In column-flex expanded mode, default `stretch` is fine.)
+2. `padding-top` MUST be identical between collapsed and expanded states
+   so the title's `y` is identical at the final frame of expand and the
+   first frame of collapse. Bottom/horizontal padding may differ.
+3. The same rule applies to width: any element existing in both states
+   must keep the same x. Don't change pill `width` during the toggle.
+
+**How to verify (mandatory before declaring a toggle change done):**
+Sample `title.getBoundingClientRect().top` every animation frame for the
+full transition. The sample array must be effectively constant (≤2px
+variance from end-state across all frames). If any frame differs by more
+than 2px, the title is shifting — the toggle is broken.
+
+```js
+// Sample helper — paste into preview eval after change
+(async () => {
+  var pill = document.getElementById('hw-v3-pill');
+  var title = pill.querySelector('.hw-v3-title');
+  var samples = [];
+  hwToggleV3();
+  for (var i = 0; i < 30; i++) {
+    await new Promise(r => requestAnimationFrame(r));
+    samples.push(Math.round(title.getBoundingClientRect().top));
+  }
+  return {min: Math.min(...samples), max: Math.max(...samples), range: Math.max(...samples) - Math.min(...samples)};
+})()
+// range must be ≤ 2
+```
+
 ## 8. Expand/collapse animation (FLIP, not naïve transition)
 
 All breakpoints animate by measuring `getBoundingClientRect()` before and

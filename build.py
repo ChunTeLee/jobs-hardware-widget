@@ -440,13 +440,20 @@ STYLE = '''
     .hw-v3-spacer { display:none; }   /* logs sit at natural top */
     #hw-v3-pill.hw-v3-collapsed {
       flex-direction:row;
-      align-items:center;
+      /* CRITICAL: flex-start, NOT center. With center, when the pill is
+         mid-shrink during collapse (height locked to 207 while layout
+         has flipped to row), the title would be vertically centered in
+         a 207-tall row — i.e. ~95px below its resting position — and
+         then "rise" 86px during the height animation. Content that
+         exists in BOTH states must stay at the same viewport y. */
+      align-items:flex-start;
       width:max-content;
       /* Pill internal gap matches the chip-to-chip gap so title→chip and
-         chip→chip look identical (avoids the "title gap looks different"
-         perception). */
+         chip→chip look identical. */
       gap:20px;
-      padding:8px 6px 8px 14px;
+      /* padding-top MUST match the expanded padding-top below (both 10px)
+         so the title sits at the same y in both states — zero shift. */
+      padding:10px 6px 10px 14px;
       right:0;       /* anchor to logs.right */
     }
     /* Pull the chevron closer to CPU so the right-side dead space is
@@ -522,7 +529,11 @@ STYLE = '''
   @media (min-width:1024px) and (max-width:1535.98px) {
     #hw-v3-pill.hw-v3-expanded {
       width:auto;
-      padding:12px 6px 12px 14px;
+      /* padding-top MUST match the collapsed padding-top (both 10px) so
+         the title sits at the same y in both states — zero shift across
+         expand/collapse. Bottom padding is allowed to differ for
+         breathing room around sparklines. */
+      padding:10px 6px 12px 14px;
     }
   }
   .hw-v3-expanded .hw-v3-head {

@@ -39,27 +39,133 @@ touched X."
     without `requestAnimationFrame` (Chrome batches them)
   - Forgetting `void pill.offsetHeight` to force reflow between writes
 
-### 2. V3 pill right edge is FLUSH with logs container right edge on lg/4K
+### 1d. Title stays anchored across expand/collapse (zero vertical shift)
 
-- **What:** On `≥1536px` viewports, the V3 pill's right edge is flush with
-  the logs container's right edge (overlay at top-right; pill does NOT
-  exceed the log container into the page margin). Applies in both
-  collapsed and expanded states.
-- **Why:** User originally wanted a 12px gap with the pill floating in the
-  margin; then changed the requirement to "align right edge with log right
-  edge" (pill overlays instead of floats outside).
-- **Established / changed:** updated this iteration (see commit).
+- **What:** During the entire expand and collapse animation, the
+  `Hardware Utilization` title's viewport `top` MUST stay at the same
+  y-coordinate (±2px tolerance). It must not slam down to the pill's
+  vertical centre when the class flips and then crawl back up as the
+  height shrinks.
+- **Why:** User-reported: "the collapsed content snaps to the bottom
+  and moves up... very basic mistake." The title's content doesn't
+  change between states — therefore its position must not change.
+- **Established:** this iteration.
+- **How to verify (mandatory before declaring any toggle change done):**
+  ```js
+  (async () => {
+    var pill = document.getElementById('hw-v3-pill');
+    var title = pill.querySelector('.hw-v3-title');
+    var samples = [];
+    hwToggleV3();
+    for (var i = 0; i < 30; i++) {
+      await new Promise(r => requestAnimationFrame(r));
+      samples.push(Math.round(title.getBoundingClientRect().top));
+    }
+    return {
+      min: Math.min(...samples), max: Math.max(...samples),
+      range: Math.max(...samples) - Math.min(...samples)   // MUST be ≤ 2
+    };
+  })()
+  ```
+  Then run again to test collapse direction. Both ranges ≤ 2.
+- **Common ways it breaks:**
+  - `align-items:center` on the collapsed pill (centres title in the
+    transient too-tall pill during collapse) — use `flex-start` instead.
+  - `padding-top` differs between collapsed and expanded states.
+  - JS changes `pill.style.top` between states (currently locked via
+    `lockedTop = -(collapsedH + 10)` and used for BOTH states; don't
+    regress that).
+  - Inserting an element only present in one state ABOVE the title
+    (would shift title down in that state).
+
+### 1c. V3 fast-toggle survives rapid clicks (no stuck mid-state)
+
+- **What:** Clicking the V3 chevron rapidly (faster than the .3s
+  transition) must always land the pill in the FINAL intended state
+  (either fully collapsed or fully expanded — matching the parity of
+  click count) — never stuck mid-transition.
+- **Why:** User flagged "didn't go all the way back" after fast
+  collapse/expand on >lg.
+- **Established:** d5c350d.
+- **How to verify (manual, on visible tab):**
+  - Click chevron 4 times in quick succession (~100ms apart). Pill
+    should end in the SAME state it started (4 toggles = identity).
+  - Click 3 times in quick succession. Pill should end in the
+    OPPOSITE state (3 toggles = flip).
+  - In both cases, no intermediate width/height locked inline.
+- **Common ways it breaks:**
+  - Forgetting to `cancelAnimationFrame` on the pending rAF id at the
+    top of `hwToggleV3` — the previous rAF will fire AFTER the new
+    toggle and overwrite start values
+  - Forgetting to `removeEventListener` on the pending transitionend
+    cleanup — both old and new cleanups fire, racing each other
+  - Adding new async steps (timeouts, microtasks) inside `hwToggleV3`
+    without making them cancelable too
+
+### 1b. V3 lg collapsed: floats INSIDE the metadata header band (row-2)
+
+- **What:** On `1024–1535px` viewports, the V3 collapsed pill is a child
+  of `#hw-meta-band` (the page-header metadata flex-wrap row with
+  Status / Created / Hardware / Image / Command / Env vars / Secrets).
+  It sits as a flex-wrap peer of those fields, pushed to the right edge
+  via `margin-left:auto`, filling the row-2 dead space WITHOUT
+  introducing any new vertical space above logs.
+  - Title `"Hardware Utilization"` visible at the start (left), chevron
+    inline at the far right
+  - 3 metric chips inline (no wrap), tight gap (10px pill, 5px chip)
+  - Right edge **flush with band's right edge** (= logs' right edge)
+  - **Pill parent === `#hw-meta-band`** (not `#hw-v3-layout`)
+  - No spacer above logs (logs at natural position)
+- **Why:** User's spec — "I don't want the widget to occupy another
+  vertical space. It will be floating in the header container."
+- **Established:** this iteration (supersedes previous "above logs" spec).
+- **How to verify:**
+  ```js
+  var pill = document.getElementById('hw-v3-pill');
+  var band = document.getElementById('hw-meta-band');
+  var p = pill.getBoundingClientRect(), b = band.getBoundingClientRect();
+  ({
+    parent: pill.parentElement.id,                  // must be "hw-meta-band"
+    rightAlign: Math.round(b.right - p.right),      // must be 0
+    insideBand: p.top >= b.top && p.bottom <= b.bottom + 8,
+    horizontal: p.width > p.height * 3,
+    titleShown: pill.querySelector('.hw-v3-title').offsetHeight > 0
+  })
+  ```
+- **Common ways it breaks:**
+  - `attachV3()` not detecting lg range and dropping pill into
+    `#hw-v3-layout` instead of `#hw-meta-band`
+  - Base `position:absolute` not overridden by the lg-specific
+    `position:static` rule (selector chain
+    `#hw-meta-band > #hw-v3-pill.hw-v3-collapsed` matters)
+  - Removing `margin-left:auto` (pill packs left after Secrets, leaving
+    dead space on the right)
+  - Forgetting to clear inline `right`/`width`/`height` from a >lg cycle
+    when re-attaching at lg
+
+### 2. V3 pill collapsed left edge is 10px past logs right edge on lg/4K
+
+- **What:** On `≥1536px` viewports, the V3 collapsed pill floats in the
+  page margin with a **10px gap** between the logs container's right edge
+  and the pill's left edge. (Pill is NOT flush with logs; it sits in the
+  page margin to the right of logs.)
+- **Why:** User's final spec for the >lg layout. Rewound after a brief
+  detour to a "flush" design and a "12px gap" design.
 - **How to verify:**
   ```js
   var pill = document.getElementById('hw-v3-pill');
   var card = document.getElementById('hw-logs-card');
-  Math.round(pill.getBoundingClientRect().right - card.getBoundingClientRect().right)
-  // Must equal 0 (give or take 1px for subpixel rounding).
+  Math.round(pill.getBoundingClientRect().left - card.getBoundingClientRect().right)
+  // Must equal 10 (± 1px for subpixel rounding).
   ```
+- **Companion behavior on expand (see also invariant #7):** the pill's
+  RIGHT edge stays anchored at `logs.right + W_collapsed + 10`. Width
+  grows from W_collapsed to 340, so the LEFT edge moves inward over
+  logs while the right edge stays in the margin — overlay without shift.
 - **Common ways it breaks:**
-  - Inline `right` override that doesn't equal 0 (lockLgAnchor used to
-    set `right:-(12+w)` — that's been removed; don't re-introduce it)
-  - CSS `right:-Npx` on the breakpoint rule (push pill into margin)
+  - `lockLgAnchor` not setting inline `right:-(W+10)` (CSS fallback
+    `right:0` would make the pill flush with logs instead)
+  - Changing the `+10` constant without updating this entry
 
 ### 2b. Inter-metric vertical spacing in V3 collapsed = 6px
 
