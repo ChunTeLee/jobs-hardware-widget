@@ -91,6 +91,31 @@ scale.
 - Running state never goes red (live values bounce; only avg/peak alarm).
 - Never green. Green would moralise "normal load" as "good."
 
+## 4a. Live indicator (running state only)
+
+- **No "Live" text.** The word was dropped — the pulsing green dot
+  speaks for itself.
+- **Dot size:** 6×6 px, green `#22c55e`, with a ping animation halo.
+- **Gap from title:** **5 px** (dot left-edge to title right-edge). Holds
+  across **all breakpoints** and **all variants** (V1 / V2 / V3 collapsed
+  / V3 expanded).
+- **Visible only when** `state === 'running'`. Hidden display:none
+  otherwise.
+- **How to verify:** measure `dot.left - title.right` in each context
+  with state=running:
+  ```js
+  var dot = document.querySelector('#hw-v3-live-badge span');
+  var title = document.querySelector('#hw-v3-pill .hw-v3-title');
+  Math.round(dot.getBoundingClientRect().left - title.getBoundingClientRect().right)
+  // must be 5
+  ```
+- **Common ways it breaks:** leftover `margin-left` on `.hw-v3-head-live`
+  (was 4px historically); the badge's own internal `gap` from when "Live"
+  text was a sibling; head/pill flex gap accidentally bumped above 5
+  without a compensating negative `margin-left` on the badge in lg's
+  display-contents context (currently `-15px` to offset the pill's 20px
+  gap).
+
 ## 5. Aggregation tags (the muted micro-tag)
 
 | Metric          | Aggregate | Tag display |

@@ -203,13 +203,14 @@ def gauges(prefix, style):
           + one("cpu-util", "CPU Utilization"))
 
 def badges(prefix):
-    """Live dot + context note, namespaced by version prefix."""
-    return f'''<span id="{prefix}-live-badge" style="display:none;align-items:center;gap:5px;">
-        <span style="position:relative;display:inline-flex;width:8px;height:8px;">
+    """Live dot only (no text), namespaced by version prefix. The dot is
+    a small (6x6) pulsing green indicator shown only when the job is
+    running. Sits 5px from the title — see context-specific overrides."""
+    return f'''<span id="{prefix}-live-badge" style="display:none;align-items:center;">
+        <span style="position:relative;display:inline-flex;width:6px;height:6px;">
           <span style="position:absolute;display:inline-flex;width:100%;height:100%;border-radius:9999px;background:#22c55e;opacity:.75;animation:hwPing 1.5s cubic-bezier(0,0,.2,1) infinite;"></span>
-          <span style="position:relative;display:inline-flex;width:8px;height:8px;border-radius:9999px;background:#22c55e;"></span>
+          <span style="position:relative;display:inline-flex;width:6px;height:6px;border-radius:9999px;background:#22c55e;"></span>
         </span>
-        <span style="font-size:11px;color:#22c55e;font-weight:500;">Live</span>
       </span>
       <span id="{prefix}-context-note" style="font-size:11px;color:#6e7681;font-style:italic;"></span>'''
 
@@ -217,7 +218,7 @@ def badges(prefix):
 V1 = f'''
 <div id="hw-v1-wrap">
   <div class="border-t border-gray-200 px-4 py-3 dark:border-gray-800">
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+    <div style="display:flex;align-items:center;gap:5px;margin-bottom:12px;">
       <p class="text-xs text-gray-500">Hardware Utilization</p>
       {badges("hw-v1")}
     </div>
@@ -231,7 +232,7 @@ V1 = f'''
 V2 = f'''
 <div id="hw-v2-wrap" style="display:none;">
   <div class="border-t border-gray-200 px-4 py-3 dark:border-gray-800">
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+    <div style="display:flex;align-items:center;gap:5px;margin-bottom:12px;">
       <p class="text-xs text-gray-500">Hardware Utilization</p>
       {badges("hw-v2")}
     </div>
@@ -484,25 +485,19 @@ STYLE = '''
     .hw-v3-collapsed .hw-v3-head-live { display:contents; }
     .hw-v3-collapsed #hw-v3-context-note { display:none !important; }
     .hw-v3-collapsed .hw-v3-title { order:1; }
-    .hw-v3-collapsed #hw-v3-live-badge { order:2; }
+    .hw-v3-collapsed #hw-v3-live-badge {
+      order:2;
+      /* Pill gap is 20; pull the dot left by 15 so it sits 5px from the
+         title. The downstream gap (badge→chips) stays at 20. */
+      margin-left:-15px;
+    }
     .hw-v3-collapsed .hw-v3-rows { order:3; }
     .hw-v3-collapsed .hw-v3-toggle { order:4; }
   }
-  /* >lg / 4K-class running-state polish: hide 'Live' text, smaller dot,
-     dot 5px next to the title. Scoped to ≥1536 so md/lg keep the badge
-     with text visible. */
+  /* >lg / 4K-class running-state polish: dot is 6×6 from badges() now,
+     no Live text to hide. Just tighten the head gap to 5px. */
   @media (min-width:1536px) {
     .hw-v3-collapsed .hw-v3-head { gap:5px; }
-    #hw-v3-live-badge { margin-left:0 !important; gap:0; }
-    #hw-v3-live-badge > span:first-child {
-      width:6px !important; height:6px !important;
-    }
-    /* Solid-dot child has explicit inline 8x8 — override to match. */
-    #hw-v3-live-badge > span:first-child > span:last-child {
-      width:6px !important; height:6px !important;
-    }
-    /* Hide the 'Live' text (second child of the badge wrapper). */
-    #hw-v3-live-badge > span:nth-child(2) { display:none !important; }
   }
   /* EXPANDED — overlay; vertical stack with sparklines (logs unchanged).
      Width capped at 420px so the expanded card doesn't stretch the full
@@ -537,7 +532,7 @@ STYLE = '''
     }
   }
   .hw-v3-expanded .hw-v3-head {
-    display:flex; align-items:center; gap:10px; justify-content:flex-start;
+    display:flex; align-items:center; gap:5px; justify-content:flex-start;
     margin-bottom:2px;
   }
   .hw-v3-expanded .hw-v3-rows {
@@ -557,7 +552,7 @@ STYLE = '''
      a marker class only — no extra typographic overrides except a
      no-wrap rule so the pill widens to fit the title on one line. */
   .hw-v3-title { margin:0; white-space:nowrap; }
-  .hw-v3-head-live { margin-left:4px; }
+  .hw-v3-head-live { margin-left:0; }
   .hw-v3-toggle {
     margin-left:auto; background:transparent; border:none;
     color:#8b949e; cursor:pointer; padding:2px; border-radius:4px;
