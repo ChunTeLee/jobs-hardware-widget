@@ -147,6 +147,70 @@ expanded, hovered, focused) where both elements are visible.
 only one axis, it's incomplete. Add the orthogonal axis assertion or
 the bug will ship.
 
+### Rhythm audit (the spacing-consistency check)
+
+A component has **rhythm** when several gap-or-padding surfaces are
+*supposed* to look like the same single value — e.g. a card's top
+padding, bottom padding, gap between siblings, gap between rows, all
+"should be 10px." When you check only the gap the user complained
+about, the other surfaces silently drift to 8 or 12 and the component
+keeps reading as "uneven" even after each individual fix.
+
+**Why this keeps happening:** every iteration touches the closest
+neighbour to the user's complaint and leaves the orthogonal gaps
+unaudited. The user re-reports "still uneven" because *they* see all
+the gaps at once, while *you* fixed one.
+
+**The fix is procedural, not just per-bug:** every time the user says
+"spacing is off / not unified / looks uneven," do a **rhythm audit** —
+enumerate *every* gap and padding in the component and assert they
+share a token.
+
+Canonical audit pattern:
+
+```js
+// 1. Decide the rhythm TOKEN (e.g. 10 — from project tokens or asking
+//    the user). It must be a single number, not a list.
+var TOKEN = 10;
+var TOL   = 2;   // ±2px for borders/subpixel
+
+// 2. Enumerate EVERY surface that participates in the rhythm:
+//    - container's top padding, right padding, bottom padding, left
+//      padding (if symmetric)
+//    - container's flex/grid gap
+//    - each child's margin if the design says "child-to-child = TOKEN"
+//    - any nested container's first/last child padding
+var V = {
+  pill_top_pad:      p.head.top - p.pill.top,
+  head_to_rows:      p.rows.top - p.head.bottom,
+  row1_to_row2:      p.rows[1].top - p.rows[0].bottom,
+  row2_to_row3:      p.rows[2].top - p.rows[1].bottom,
+  pill_bottom_pad:   p.pill.bottom - p.rows[2].bottom
+};
+
+// 3. Assert ALL entries land on TOKEN ± TOL:
+var drift = Object.entries(V)
+  .map(([k,v]) => ({k, v, off: Math.abs(v - TOKEN)}))
+  .filter(x => x.off > TOL);
+// drift MUST be empty. If not, fix the named surfaces, don't argue.
+```
+
+**Tokens for this project (`hw-widget-design` skill, section 1):**
+- horizontal pill rhythm: `20px`
+- vertical pill rhythm: `10px`
+- inner-chip rhythm: `6px`
+- live-dot-to-title: `5px`
+
+Anything that should-be-rhythmic must hit its token. If a surface
+genuinely needs to differ (rare), make it a deliberate exception, not a
+silent drift — name it, document why, and put it in an "exceptions"
+column of the invariant.
+
+**When to run the audit:** every time you touch ANY padding/margin/gap
+in a component, AND every time the user says any variation of "looks
+off" / "spacing wrong" / "not unified." Don't try to guess the one
+surface they're seeing.
+
 ### Colors / typography
 
 - `getComputedStyle(el).color / backgroundColor / borderColor / fontSize /

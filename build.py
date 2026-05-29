@@ -566,20 +566,26 @@ STYLE = '''
     #hw-v3-pill.hw-v3-expanded { width:auto; }
   }
   @media (min-width:1024px) and (max-width:1279.98px) {
-    /* lg-narrow expanded — symmetric padding matching collapsed */
-    #hw-v3-pill.hw-v3-expanded { padding:10px 14px 12px 14px; }
+    /* lg-narrow expanded — symmetric L/R AND vertical: every vertical
+       surface is 10px (top padding, bottom padding, row→row gap). */
+    #hw-v3-pill.hw-v3-expanded { padding:10px 14px; }
   }
   @media (min-width:1280px) and (max-width:1535.98px) {
-    /* lg-wide expanded — asymmetric padding matching collapsed
-       (right side minimal because pill is anchored to logs.right) */
-    #hw-v3-pill.hw-v3-expanded { padding:10px 6px 12px 14px; }
+    /* lg-wide expanded — asymmetric L/R (right minimal because pill is
+       anchored to logs.right), but vertical surfaces all 10px. */
+    #hw-v3-pill.hw-v3-expanded { padding:10px 6px 10px 14px; }
   }
   .hw-v3-expanded .hw-v3-head {
+    /* No margin-bottom: the pill's column-flex gap (10px) is the SINGLE
+       vertical-rhythm token. Any margin here would add to the gap and
+       break the head→rows distance vs row→row equality. */
     display:flex; align-items:center; gap:5px; justify-content:flex-start;
-    margin-bottom:2px;
   }
   .hw-v3-expanded .hw-v3-rows {
-    display:flex; flex-direction:column; gap:12px;
+    /* gap MUST equal the pill's top+bottom padding (10) so the vertical
+       rhythm (top padding → head → row gaps → bottom padding) is one
+       single value — no eye-detectable asymmetry. */
+    display:flex; flex-direction:column; gap:10px;
   }
   /* Match V2's spacing between metric title and sparkline (margin-bottom:5px). */
   .hw-v3-expanded .hw-v3-row { flex-direction:column; gap:5px; }

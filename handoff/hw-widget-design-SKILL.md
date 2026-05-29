@@ -16,6 +16,35 @@ your first move is to check whether the actual values match this document
 
 ---
 
+## 0. Rhythm tokens (THE single source of truth for spacing)
+
+Every gap/padding in the widget MUST resolve to ONE of these tokens.
+If you find yourself wanting "12px because it looks better," stop —
+either retune the token (and update this table + audit every site)
+or accept the rhythm token. Single drifting values are how the
+"uneven spacing" complaint repeats.
+
+| Token | Value | Where it applies |
+|---|---|---|
+| **H-MAJOR** | 20px | Pill flex `gap`; rows-container `gap` (chip↔chip and title↔chip) |
+| **H-MINOR** | 14px | Pill horizontal padding (L=14, R=14 narrow; R=6 wide exception) |
+| **V-MAJOR** | 10px | Pill column-flex `gap` (head↔rows, row↔row); pill top+bottom padding |
+| **V-INNER** | 5px | row column gap (row-head↔sparkline); title↔dot |
+| **CHIP** | 6px | row-head internal gap (dot↔label↔val) |
+| **DOT-TITLE** | 5px | live dot offset (both x AND y) |
+
+The **only** allowed exceptions:
+- lg-wide pill right padding = 6 instead of 14 (chevron must sit close
+  to logs.right — documented in section 7).
+- expanded pill bottom-padding token is V-MAJOR (10) NOT 12. If you see
+  12, that's a drift, fix it.
+
+**Audit before declaring any spacing change done.** Run the rhythm
+audit snippet from the verification-loop skill (Layout / spacing
+section). It must pass with TOKEN=V-MAJOR for vertical surfaces and
+TOKEN=H-MAJOR for horizontal surfaces. Any surface that drifts gets
+named and fixed — don't ship "close enough."
+
 ## 1. Spacing rhythm (the rule that catches people out most)
 
 The widget pill has **two** flex containers nested inside each other, and
