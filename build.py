@@ -509,6 +509,18 @@ STYLE = '''
     .hw-v3-spacer { display:block; }      /* reserves vertical room */
     #hw-v3-pill.hw-v3-collapsed { left:0; right:auto; }
     #hw-v3-pill.hw-v3-expanded  { left:0; right:auto; }
+    /* lg-wide uses 14L / 6R + chevron margin-left:-12 to minimise the
+       right-side dead space (pill is anchored to logs.right; user wants
+       the chevron close to the logs edge). At lg-narrow the pill sits
+       on its own left-aligned row, so use SYMMETRIC 14L / 14R padding
+       and drop the chevron pull-in. */
+    #hw-v3-pill.hw-v3-collapsed {
+      padding:10px 14px;
+    }
+    #hw-v3-pill.hw-v3-expanded {
+      padding:10px 14px 12px 14px;
+    }
+    .hw-v3-collapsed #hw-v3-toggle { margin-left:0; }
   }
   /* lg-WIDE (1280–1535) — Command stays on row-1 of the header band,
      leaving dead space on row-2 for the pill to FLOAT into. Pill is
@@ -548,14 +560,19 @@ STYLE = '''
      the collapsed horizontal padding (14px L / 6px R) so the border
      doesn't visually shift between states. */
   @media (min-width:1024px) and (max-width:1535.98px) {
-    #hw-v3-pill.hw-v3-expanded {
-      width:auto;
-      /* padding-top MUST match the collapsed padding-top (both 10px) so
-         the title sits at the same y in both states — zero shift across
-         expand/collapse. Bottom padding is allowed to differ for
-         breathing room around sparklines. */
-      padding:10px 6px 12px 14px;
-    }
+    /* JS controls width on lg (locks collapsedW across both states).
+       Don't let base 420px override. Padding is set per-sub-range
+       below (lg-narrow uses symmetric 14L/14R; lg-wide uses 14L/6R). */
+    #hw-v3-pill.hw-v3-expanded { width:auto; }
+  }
+  @media (min-width:1024px) and (max-width:1279.98px) {
+    /* lg-narrow expanded — symmetric padding matching collapsed */
+    #hw-v3-pill.hw-v3-expanded { padding:10px 14px 12px 14px; }
+  }
+  @media (min-width:1280px) and (max-width:1535.98px) {
+    /* lg-wide expanded — asymmetric padding matching collapsed
+       (right side minimal because pill is anchored to logs.right) */
+    #hw-v3-pill.hw-v3-expanded { padding:10px 6px 12px 14px; }
   }
   .hw-v3-expanded .hw-v3-head {
     display:flex; align-items:center; gap:5px; justify-content:flex-start;
