@@ -406,14 +406,13 @@
          chip→chip look identical. */
       gap:20px;
       /* padding-top MUST match the expanded padding-top below (both 10px)
-         so the title sits at the same y in both states — zero shift. */
-      padding:10px 6px 10px 14px;
-      /* Container anchor (right:0 for wide lg float, left:0 for narrow
-         lg own-row) is set in the breakpoint-specific blocks below. */
+         so the title sits at the same y in both states — zero shift.
+         L/R both 14: symmetric horizontal padding across float-band
+         (md, lg-wide) and own-row (lg-narrow) sub-ranges. */
+      padding:10px 14px;
+      /* Container anchor (right:0 for float-band, left:0 for lg-narrow
+         own-row) is set in the breakpoint-specific blocks below. */
     }
-    /* Pull the chevron closer to CPU so the right-side dead space is
-       small without affecting the title→chip and chip→chip rhythm. */
-    .hw-v3-collapsed #hw-v3-toggle { margin-left:-12px; }
     /* Metrics inline, no wrap. Uniform 20px chip gap (GPU↔MEM↔CPU). */
     .hw-v3-collapsed .hw-v3-rows {
       flex-direction:row; flex-wrap:nowrap; gap:20px; align-items:center;
@@ -533,9 +532,9 @@
   }
   @media (min-width:768px) and (max-width:1023.98px),
          (min-width:1280px) and (max-width:1535.98px) {
-    /* md AND lg-wide expanded — asymmetric L/R (right minimal because
-       pill is anchored to logs.right), but vertical surfaces all 10px. */
-    #hw-v3-pill.hw-v3-expanded { padding:10px 6px 10px 14px; }
+    /* md AND lg-wide expanded — symmetric L/R (14/14) matching the
+       collapsed shared padding. Vertical surfaces all 10px. */
+    #hw-v3-pill.hw-v3-expanded { padding:10px 14px; }
   }
   .hw-v3-expanded .hw-v3-head {
     /* No margin-bottom: the pill's column-flex gap (10px) is the SINGLE
