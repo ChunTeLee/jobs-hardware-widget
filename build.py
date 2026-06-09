@@ -380,7 +380,7 @@ STYLE = '''
        (border-gray-200 / bg-white dark:bg-gray-950) so the widget
        inherits the page's chrome (matches the logs card border and
        page background). */
-    border-radius:12px; padding:8px 14px;
+    border-radius:12px; padding:10px;
     box-shadow:0 4px 14px rgba(0,0,0,.35);
     cursor:pointer; user-select:none;
     display:flex; flex-direction:column; gap:10px;
@@ -419,7 +419,7 @@ STYLE = '''
     .hw-v3-spacer { display:block; }
     /* Pill spans the layout slot. */
     #hw-v3-pill.hw-v3-collapsed { left:0; right:0; }
-    #hw-v3-pill.hw-v3-expanded  { left:0; right:0; padding:10px 14px; }
+    #hw-v3-pill.hw-v3-expanded  { left:0; right:0; padding:10px; }
     /* Override base mobile head:none — show its children inline as
        direct flex items of the pill (same trick as 768-1535 shared). */
     .hw-v3-collapsed .hw-v3-head { display:contents; }
@@ -438,7 +438,7 @@ STYLE = '''
       flex-direction:row;
       align-items:flex-start;
       gap:20px;
-      padding:10px 14px;
+      padding:10px;
     }
     /* Chip rhythm — same H-MAJOR=20 / CHIP=6 tokens as other screens. */
     .hw-v3-collapsed .hw-v3-rows {
@@ -465,7 +465,7 @@ STYLE = '''
        (animatable). The CSS values below are fallbacks the inline
        overrides — they don't determine the actual position. */
     #hw-v3-pill.hw-v3-collapsed {
-      right:0; left:auto; width:max-content; padding:10px 12px;
+      right:0; left:auto; width:max-content; padding:10px;
     }
     .hw-v3-collapsed .hw-v3-head { display:flex; align-items:center; gap:8px; justify-content:space-between; }
     .hw-v3-collapsed .hw-v3-rows { flex-direction:column; align-items:stretch; gap:6px; }
@@ -490,11 +490,9 @@ STYLE = '''
       /* Pill internal gap matches the chip-to-chip gap so title→chip and
          chip→chip look identical. */
       gap:20px;
-      /* padding-top MUST match the expanded padding-top below (both 10px)
-         so the title sits at the same y in both states — zero shift.
-         L/R both 14: symmetric horizontal padding across float-band
-         (md, lg-wide) and own-row (lg-narrow) sub-ranges. */
-      padding:10px 14px;
+      /* Uniform 10px on all four sides — single padding token across
+         every state and breakpoint. */
+      padding:10px;
       /* Container anchor (right:0 for float-band, left:0 for lg-narrow
          own-row) is set in the breakpoint-specific blocks below. */
     }
@@ -555,12 +553,8 @@ STYLE = '''
        the chevron close to the logs edge). At lg-narrow the pill sits
        on its own left-aligned row, so use SYMMETRIC 14L / 14R padding
        and drop the chevron pull-in. */
-    #hw-v3-pill.hw-v3-collapsed {
-      padding:10px 14px;
-    }
-    #hw-v3-pill.hw-v3-expanded {
-      padding:10px 14px 12px 14px;
-    }
+    #hw-v3-pill.hw-v3-collapsed { padding:10px; }
+    #hw-v3-pill.hw-v3-expanded  { padding:10px; }
     .hw-v3-collapsed #hw-v3-toggle { margin-left:0; }
   }
   /* FLOAT-INTO-BAND ranges — md (768-1023) AND lg-wide (1280-1535).
@@ -587,7 +581,7 @@ STYLE = '''
      width of logs on mobile/md/lg; max-width:100% clamps on narrow
      screens. >lg overrides to 340 below. */
   #hw-v3-pill.hw-v3-expanded {
-    right:0; width:420px; max-width:100%; padding:12px 14px;
+    right:0; width:420px; max-width:100%; padding:10px;
   }
   @media (min-width:1536px) {
     #hw-v3-pill.hw-v3-expanded {
@@ -610,17 +604,8 @@ STYLE = '''
        sub-range below. */
     #hw-v3-pill.hw-v3-expanded { width:auto; }
   }
-  @media (min-width:1024px) and (max-width:1279.98px) {
-    /* lg-narrow expanded — symmetric L/R AND vertical: every vertical
-       surface is 10px (top padding, bottom padding, row→row gap). */
-    #hw-v3-pill.hw-v3-expanded { padding:10px 14px; }
-  }
-  @media (min-width:768px) and (max-width:1023.98px),
-         (min-width:1280px) and (max-width:1535.98px) {
-    /* md AND lg-wide expanded — symmetric L/R (14/14) matching the
-       collapsed shared padding. Vertical surfaces all 10px. */
-    #hw-v3-pill.hw-v3-expanded { padding:10px 14px; }
-  }
+  /* Padding for all md/lg expanded is the single 10px token set by the
+     shared block above — no per-sub-range overrides needed. */
   .hw-v3-expanded .hw-v3-head {
     /* No margin-bottom: the pill's column-flex gap (10px) is the SINGLE
        vertical-rhythm token. Any margin here would add to the gap and
