@@ -303,9 +303,9 @@ CONTROL = '''
   <!-- Segmented control: mutually-exclusive version choice -->
   <div style="display:flex;background:#161b22;border:1px solid #30363d;
               border-radius:8px;padding:3px;gap:3px;">
-    <button onclick="hwSetVersion('v3')" id="hw-ver-v3" class="hw-seg" style="flex:1;">V3 Pill</button>
-    <button onclick="hwSetVersion('v2')" id="hw-ver-v2" class="hw-seg" style="flex:1;">V2 Trend</button>
-    <button onclick="hwSetVersion('v1')" id="hw-ver-v1" class="hw-seg" style="flex:1;">V1 Bar</button>
+    <button onclick="hwSetVersion('v3')" id="hw-ver-v3" class="hw-seg" style="flex:1;">V3 Dropdown Pill</button>
+    <button onclick="hwSetVersion('v2')" id="hw-ver-v2" class="hw-seg" style="flex:1;display:none;">V2 Trend</button>
+    <button onclick="hwSetVersion('v1')" id="hw-ver-v1" class="hw-seg" style="flex:1;display:none;">V1 Bar</button>
   </div>
 
   <!-- Contextual state toggle: hidden/collapsed until a version is active -->
