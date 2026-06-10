@@ -285,6 +285,42 @@ V3 = f'''
   </div>
 </div>'''
 
+# Version 4 — Nested top-right of the logs card. The pill is inserted
+# INSIDE #hw-logs-card via JS. Its top + right edges reuse the card's
+# existing border; new left + bottom borders carve out a sub-region.
+# No background "pill" chrome — sits within the card's chrome system.
+def _v4_row(metric, label):
+    return f'''
+      <div class="hw-v4-row" data-metric="{metric}">
+        <div class="hw-v4-row-head">
+          <span id="hw-v4-{metric}-dot" class="hw-v4-dot"></span>
+          <span class="hw-v4-row-label">{label}</span>
+          <span class="hw-v4-row-spacer"></span>
+          <span id="hw-v4-{metric}-agg" class="hw-v4-agg"></span>
+          <span id="hw-v4-{metric}-val" class="hw-v4-val">&mdash;</span>
+        </div>
+        <div class="hw-v4-spark hw-spark-track">
+          <svg id="hw-v4-{metric}-svg" width="100%" height="30" viewBox="0 0 100 30" preserveAspectRatio="none" style="display:block;"></svg>
+        </div>
+      </div>'''
+
+V4 = f'''
+<div id="hw-v4-wrap" style="display:none;">
+  <div id="hw-v4-pill" class="hw-v4-collapsed" onclick="hwToggleV4(event)">
+    <span class="hw-v4-head-live">{badges("hw-v4")}</span>
+    <div class="hw-v4-rows">
+      {_v4_row("gpu-util", "GPU")}
+      {_v4_row("gpu-mem",  "MEM")}
+      {_v4_row("cpu-util", "CPU")}
+    </div>
+    <button onclick="hwToggleV4(event)" id="hw-v4-toggle" class="hw-v4-toggle" title="Expand">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="hw-v4-chevron">
+        <polyline points="4 6 8 10 12 6"/>
+      </svg>
+    </button>
+  </div>
+</div>'''
+
 # Two-tier prototype control: version selector (primary) -> state toggle
 # (secondary, collapsed until a version is chosen).
 CONTROL = '''
@@ -303,6 +339,7 @@ CONTROL = '''
   <!-- Segmented control: mutually-exclusive version choice -->
   <div style="display:flex;background:#161b22;border:1px solid #30363d;
               border-radius:8px;padding:3px;gap:3px;">
+    <button onclick="hwSetVersion('v4')" id="hw-ver-v4" class="hw-seg" style="flex:1;">Nested</button>
     <button onclick="hwSetVersion('v3')" id="hw-ver-v3" class="hw-seg" style="flex:1;">Dropdown Pill</button>
     <button onclick="hwSetVersion('v2')" id="hw-ver-v2" class="hw-seg" style="flex:1;">Trend</button>
     <button onclick="hwSetVersion('v1')" id="hw-ver-v1" class="hw-seg" style="flex:1;display:none;">V1 Bar</button>
@@ -671,15 +708,109 @@ STYLE = '''
     font-variant-numeric:tabular-nums; white-space:nowrap;
   }
   .hw-v3-spark { height:30px; }
+
+  /* ── V4 Nested — top-right corner of #hw-logs-card ──────────────────── */
+  /* Borderless top + right (reuse logs card's own border).
+     New left + bottom border carve out the hardware sub-region.
+     No own background pill chrome — inherits the logs-card header bg. */
+  #hw-v4-pill {
+    position:absolute; top:0; right:0; z-index:10;
+    box-sizing:border-box; overflow:hidden;
+    display:flex; flex-direction:row; align-items:center;
+    gap:20px; padding:10px;
+    background:#fff;
+    border-left:1px solid rgb(229 231 235);    /* gray-200 */
+    border-bottom:1px solid rgb(229 231 235);
+    border-bottom-left-radius:8px;             /* small inner rounding */
+    cursor:pointer; user-select:none;
+    transition:width  .3s cubic-bezier(0.4,0,0.2,1),
+               height .3s cubic-bezier(0.4,0,0.2,1);
+  }
+  :where(.dark) #hw-v4-pill {
+    background:rgb(3 7 18);                    /* gray-950 */
+    border-left-color:rgb(31 41 55);           /* gray-800 */
+    border-bottom-color:rgb(31 41 55);
+  }
+  /* COLLAPSED — compact horizontal row, chips only, dot + label + val.
+     Hide spark and agg in collapsed (same as V3 collapsed rules). */
+  .hw-v4-collapsed .hw-v4-rows {
+    display:flex; flex-direction:row; align-items:center;
+    gap:20px; flex-wrap:nowrap;
+  }
+  .hw-v4-collapsed .hw-v4-row {
+    flex:none; display:flex; flex-direction:row; align-items:center;
+    gap:6px; min-width:0;
+  }
+  .hw-v4-collapsed .hw-v4-row-head {
+    display:flex; align-items:center; gap:6px; min-width:0;
+  }
+  .hw-v4-collapsed .hw-v4-row-spacer { display:none; }
+  .hw-v4-collapsed .hw-v4-agg { display:none; }
+  .hw-v4-collapsed .hw-v4-spark { display:none; }
+  .hw-v4-collapsed #hw-v4-live-badge { margin-top:5px; }
+  /* EXPANDED — overlay panel inside the card; sparklines visible.
+     Same anchor (top-right of card), grows leftward and downward. */
+  .hw-v4-expanded {
+    width:320px;
+    flex-direction:column !important;
+    align-items:stretch;
+    gap:10px;
+  }
+  .hw-v4-expanded .hw-v4-head-live { display:none; }   /* badge hides in expanded view; agg tags carry the meaning */
+  .hw-v4-expanded .hw-v4-rows {
+    display:flex; flex-direction:column; gap:10px; width:100%;
+  }
+  .hw-v4-expanded .hw-v4-row {
+    flex-direction:column; gap:5px;
+  }
+  .hw-v4-expanded .hw-v4-row-head {
+    display:flex; align-items:center; gap:8px; justify-content:flex-start;
+  }
+  .hw-v4-expanded .hw-v4-row-spacer { flex:1; }
+  .hw-v4-expanded .hw-v4-agg { display:inline; }
+  .hw-v4-expanded .hw-v4-spark { display:block; }
+  /* Chevron — same rotation pattern as V3 */
+  .hw-v4-toggle {
+    margin-left:auto; background:transparent; border:none;
+    color:#8b949e; cursor:pointer; padding:2px; border-radius:4px;
+    display:inline-flex;
+  }
+  .hw-v4-toggle:hover { background:rgba(139,148,158,.15); color:#e6edf3; }
+  .hw-v4-chevron {
+    transform:rotate(0deg);
+    transition:transform .25s ease;
+    transform-origin:50% 50%;
+    will-change:transform;
+  }
+  .hw-v4-expanded .hw-v4-chevron { transform:rotate(180deg); }
+  .hw-v4-expanded .hw-v4-toggle {
+    position:absolute; top:10px; right:10px;
+  }
+  /* Shared chrome (matches V3) */
+  .hw-v4-dot { width:8px; height:8px; border-radius:9999px; background:#6e7681; flex-shrink:0; }
+  .hw-v4-row-label {
+    font-size:10px; color:#8b949e; font-weight:600;
+    text-transform:uppercase; letter-spacing:.05em;
+  }
+  .hw-v4-agg {
+    font-size:9px; font-weight:600; letter-spacing:.07em;
+    text-transform:uppercase; color:#8b949e;
+  }
+  .hw-v4-val {
+    font-size:11px; color:#e6edf3; font-weight:500;
+    font-variant-numeric:tabular-nums; white-space:nowrap;
+  }
+  .hw-v4-spark { height:30px; }
 </style>'''
 
 SCRIPT = '''
 <script>
 (function () {
   // Which render style each version uses
-  var VSTYLE = { 'hw-v1':'bar', 'hw-v2':'spark', 'hw-v3':'pill' };
-  var PREFIXES = ['hw-v1', 'hw-v2', 'hw-v3'];
+  var VSTYLE = { 'hw-v1':'bar', 'hw-v2':'spark', 'hw-v3':'pill', 'hw-v4':'spark' };
+  var PREFIXES = ['hw-v1', 'hw-v2', 'hw-v3', 'hw-v4'];
   var v3Expanded = false;
+  var v4Expanded = false;
   var FULL = 40;            // full-run sample count (x-axis denominator)
   var currentState = 'completed';
   var currentVersion = 'v1';
@@ -1193,22 +1324,59 @@ SCRIPT = '''
     pill.addEventListener('transitionend', v3PendingCleanup);
   };
 
+  // V4 — Nested top-right inside the logs card.
+  window.hwToggleV4 = function (ev) {
+    if (ev) ev.stopPropagation();
+    var pill = document.getElementById('hw-v4-pill');
+    var btn  = document.getElementById('hw-v4-toggle');
+    if (!pill) return;
+    v4Expanded = !v4Expanded;
+    pill.classList.toggle('hw-v4-expanded', v4Expanded);
+    pill.classList.toggle('hw-v4-collapsed', !v4Expanded);
+    if (btn) btn.title = v4Expanded ? 'Collapse' : 'Expand';
+    applyState(currentState);
+  };
+  function attachV4() {
+    var pill = document.getElementById('hw-v4-pill');
+    var card = document.getElementById('hw-logs-card');
+    if (!pill || !card) return;
+    // Card must be position:relative so the pill's absolute anchors at
+    // top:0 right:0 of the card (not the page).
+    if (getComputedStyle(card).position === 'static') {
+      card.style.position = 'relative';
+    }
+    if (pill.parentElement !== card) card.appendChild(pill);
+    pill.classList.add('hw-v4-collapsed');
+    pill.classList.remove('hw-v4-expanded');
+    v4Expanded = false;
+  }
+  function detachV4() {
+    var pill = document.getElementById('hw-v4-pill');
+    var wrap = document.getElementById('hw-v4-wrap');
+    if (!pill || !wrap) return;
+    pill.classList.remove('hw-v4-expanded');
+    pill.classList.add('hw-v4-collapsed');
+    v4Expanded = false;
+    if (pill.parentElement !== wrap) wrap.appendChild(pill);
+  }
+
   window.hwSetVersion = function (v) {
     currentVersion = v;
-    ['v1', 'v2', 'v3'].forEach(function (k) {
+    ['v1', 'v2', 'v3', 'v4'].forEach(function (k) {
       var w = document.getElementById('hw-' + k + '-wrap');
       if (w) w.style.display = (k === v) ? '' : 'none';
       var b = document.getElementById('hw-ver-' + k);
       if (b) b.classList.toggle('active', k === v);
     });
-    // hw-v3-wrap is only a mount slot — the pill is moved into
-    // #hw-v3-layout by attachV3. Keeping the wrap display:block leaves an
-    // empty flex child in the page container, which still consumes one
-    // `gap-4` (16px) of vertical gap above AND below itself, doubling the
-    // header→logs gap. Keep it permanently hidden.
+    // hw-v3-wrap and hw-v4-wrap are only mount slots — their pills
+    // live elsewhere when active. Keep wraps display:none so they don't
+    // consume a gap-4 in the page container's flex.
     var v3wrap = document.getElementById('hw-v3-wrap');
     if (v3wrap) v3wrap.style.display = 'none';
+    var v4wrap = document.getElementById('hw-v4-wrap');
+    if (v4wrap) v4wrap.style.display = 'none';
     if (v === 'v3') attachV3(); else detachV3();
+    if (v === 'v4') attachV4(); else detachV4();
     // Reveal the contextual state toggle now that a version is active
     document.getElementById('hw-state-tier').classList.add('open');
     applyState(currentState);
@@ -1232,7 +1400,7 @@ SCRIPT = '''
 })();
 </script>'''
 
-HARDWARE_BLOCK = CONTROL + V1 + V2 + V3 + STYLE + SCRIPT
+HARDWARE_BLOCK = CONTROL + V1 + V2 + V3 + V4 + STYLE + SCRIPT
 
 # ── 6. Find injection point and splice ────────────────────────────────────────
 print("Finding injection point...")
