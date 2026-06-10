@@ -658,76 +658,54 @@
     /* top set inline by attachV4 = logs header strip height */
     right:0; z-index:10;
     box-sizing:border-box; overflow:hidden;
-    display:flex; flex-direction:row; align-items:center;
-    gap:20px; padding:10px;
+    /* VERTICAL stack: 3 metric rows stacked top→bottom in BOTH states.
+       10px padding all sides; 10px gap between rows. Single padding +
+       gap token = 10. Width is LOCKED to a constant value so the rows
+       stay at exactly the same x in collapsed AND expanded. Without
+       this, expanding makes the sparkline force the pill wider, which
+       pushes every row leftward (pill is right-anchored). */
+    width:160px;
+    display:flex; flex-direction:column;
+    gap:10px; padding:10px;
     background:rgb(249 250 251);               /* gray-50 (log content bg) */
     border-left:1px solid rgb(229 231 235);    /* gray-200 */
     border-bottom:1px solid rgb(229 231 235);
-    border-bottom-left-radius:8px;             /* small inner rounding */
+    border-bottom-left-radius:8px;
     cursor:pointer; user-select:none;
-    transition:width  .3s cubic-bezier(0.4,0,0.2,1),
-               height .3s cubic-bezier(0.4,0,0.2,1);
+    transition:height .3s cubic-bezier(0.4,0,0.2,1);
   }
   :where(.dark) #hw-v4-pill {
-    background:rgb(17 24 39);                  /* gray-900 (matches log content dark bg) */
+    background:rgb(17 24 39);                  /* gray-900 */
     border-left-color:rgb(31 41 55);           /* gray-800 */
     border-bottom-color:rgb(31 41 55);
   }
-  /* COLLAPSED — compact horizontal row, chips only, dot + label + val.
-     Hide spark and agg in collapsed (same as V3 collapsed rules). */
-  .hw-v4-collapsed .hw-v4-rows {
-    display:flex; flex-direction:row; align-items:center;
-    gap:20px; flex-wrap:nowrap;
-  }
-  .hw-v4-collapsed .hw-v4-row {
-    flex:none; display:flex; flex-direction:row; align-items:center;
-    gap:6px; min-width:0;
-  }
-  .hw-v4-collapsed .hw-v4-row-head {
-    display:flex; align-items:center; gap:6px; min-width:0;
-  }
-  .hw-v4-collapsed .hw-v4-row-spacer { display:none; }
-  .hw-v4-collapsed .hw-v4-agg { display:none; }
-  .hw-v4-collapsed .hw-v4-spark { display:none; }
-  .hw-v4-collapsed #hw-v4-live-badge { margin-top:5px; }
-  /* EXPANDED — overlay panel inside the card; sparklines visible.
-     Same anchor (top-right of card), grows leftward and downward. */
-  .hw-v4-expanded {
-    width:320px;
-    flex-direction:column !important;
-    align-items:stretch;
-    gap:10px;
-  }
-  .hw-v4-expanded .hw-v4-head-live { display:none; }   /* badge hides in expanded view; agg tags carry the meaning */
-  .hw-v4-expanded .hw-v4-rows {
+  /* Hide the live badge entirely in V4 — the colored dot in each row
+     already encodes status (per-metric color). Avoid the extra
+     attention-grabbing element. */
+  #hw-v4-pill .hw-v4-head-live { display:none; }
+  /* Hide the chevron button — pill is clickable as a whole. */
+  #hw-v4-pill .hw-v4-toggle { display:none; }
+
+  /* Shared row chrome (BOTH states) — vertical stack of rows, each row
+     has its row-head (dot + label + val) on one line. */
+  .hw-v4-rows {
     display:flex; flex-direction:column; gap:10px; width:100%;
   }
-  .hw-v4-expanded .hw-v4-row {
-    flex-direction:column; gap:5px;
+  .hw-v4-row { display:flex; flex-direction:column; gap:6px; }
+  .hw-v4-row-head {
+    display:flex; flex-direction:row; align-items:center; gap:6px;
   }
-  .hw-v4-expanded .hw-v4-row-head {
-    display:flex; align-items:center; gap:8px; justify-content:flex-start;
-  }
-  .hw-v4-expanded .hw-v4-row-spacer { flex:1; }
+  .hw-v4-row-spacer { flex:1; }
+  /* COLLAPSED — only the head row visible (dot + label + spacer + val).
+     No agg tag, no sparkline. */
+  .hw-v4-collapsed .hw-v4-agg { display:none; }
+  .hw-v4-collapsed .hw-v4-spark { display:none; }
+  /* EXPANDED — head row stays put; agg tag appears and sparkline appears
+     directly below each row's head. Spark height shortened from 30 → 20
+     so the panel doesn't get too tall. */
   .hw-v4-expanded .hw-v4-agg { display:inline; }
   .hw-v4-expanded .hw-v4-spark { display:block; }
-  /* Chevron — same rotation pattern as V3 */
-  .hw-v4-toggle {
-    margin-left:auto; background:transparent; border:none;
-    color:#8b949e; cursor:pointer; padding:2px; border-radius:4px;
-    display:inline-flex;
-  }
-  .hw-v4-toggle:hover { background:rgba(139,148,158,.15); color:#e6edf3; }
-  .hw-v4-chevron {
-    transform:rotate(0deg);
-    transition:transform .25s ease;
-    transform-origin:50% 50%;
-    will-change:transform;
-  }
-  .hw-v4-expanded .hw-v4-chevron { transform:rotate(180deg); }
-  .hw-v4-expanded .hw-v4-toggle {
-    position:absolute; top:10px; right:10px;
-  }
+  .hw-v4-spark { height:20px; }
   /* Shared chrome (matches V3) */
   .hw-v4-dot { width:8px; height:8px; border-radius:9999px; background:#6e7681; flex-shrink:0; }
   .hw-v4-row-label {
@@ -747,7 +725,7 @@
 <script>
 (function () {
   // Which render style each version uses
-  var VSTYLE = { 'hw-v1':'bar', 'hw-v2':'spark', 'hw-v3':'pill', 'hw-v4':'spark' };
+  var VSTYLE = { 'hw-v1':'bar', 'hw-v2':'spark', 'hw-v3':'pill', 'hw-v4':'pill' };
   var PREFIXES = ['hw-v1', 'hw-v2', 'hw-v3', 'hw-v4'];
   var v3Expanded = false;
   var v4Expanded = false;
