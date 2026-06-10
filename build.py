@@ -790,14 +790,16 @@ STYLE = '''
     left:24px; transform-origin:0% 50%;              /* left edge  = centre */
     border-radius:0 9999px 9999px 0;
   }
-  #hw-v4-pill .hw-v4-toggle:hover::before,
-  #hw-v4-pill .hw-v4-toggle:hover::after { background:rgba(110,118,129,0.65); }
+  /* Hover trigger: bend fires when hovering the handle OR anywhere on
+     the pill (the whole widget is the click/hover target). */
+  #hw-v4-pill:hover .hw-v4-toggle::before,
+  #hw-v4-pill:hover .hw-v4-toggle::after { background:rgba(110,118,129,0.65); }
   /* Collapsed hover → DOWN chevron (\/): left half tilts to \, right to / */
-  #hw-v4-pill.hw-v4-collapsed .hw-v4-toggle:hover::before { transform:rotate(20deg); }
-  #hw-v4-pill.hw-v4-collapsed .hw-v4-toggle:hover::after  { transform:rotate(-20deg); }
+  #hw-v4-pill.hw-v4-collapsed:hover .hw-v4-toggle::before { transform:rotate(20deg); }
+  #hw-v4-pill.hw-v4-collapsed:hover .hw-v4-toggle::after  { transform:rotate(-20deg); }
   /* Expanded hover → UP chevron (/\): mirror of the above */
-  #hw-v4-pill.hw-v4-expanded .hw-v4-toggle:hover::before { transform:rotate(-20deg); }
-  #hw-v4-pill.hw-v4-expanded .hw-v4-toggle:hover::after  { transform:rotate(20deg); }
+  #hw-v4-pill.hw-v4-expanded:hover .hw-v4-toggle::before { transform:rotate(-20deg); }
+  #hw-v4-pill.hw-v4-expanded:hover .hw-v4-toggle::after  { transform:rotate(20deg); }
   /* The chevron <svg> icon is not used in the grabber design. */
   .hw-v4-chevron { display:none; }
 
