@@ -1435,7 +1435,7 @@ SCRIPT = '''
     gsap.set([heads, aggs, sparks], { clearProps: 'transform,opacity' });
 
     var doneCleanup = function () {
-      gsap.set(pill, { clearProps: 'height,overflow' });
+      gsap.set(pill, { clearProps: 'height' });
       gsap.set([heads, aggs, sparks], { clearProps: 'transform,opacity' });
     };
 
@@ -1451,7 +1451,7 @@ SCRIPT = '''
 
       // INVERT: container small, heads at collapsed pos, tags below masks,
       // graphs flat.
-      gsap.set(pill, { height: startH, overflow: 'hidden' });
+      gsap.set(pill, { height: startH });
       heads.forEach(function (h, i) { gsap.set(h, { y: firstTops[i] - lastTops[i] }); });
       gsap.set(aggs,   { yPercent: 130 });
       gsap.set(sparks, { scaleY: 0 });
@@ -1478,7 +1478,7 @@ SCRIPT = '''
       var collapsedTops = v4HeadTops(heads);
       pill.classList.add('hw-v4-expanded');
       pill.classList.remove('hw-v4-collapsed');
-      gsap.set(pill, { height: startH, overflow: 'hidden' });
+      gsap.set(pill, { height: startH });
       var dyCol = [];
       heads.forEach(function (h, i) { dyCol[i] = collapsedTops[i] - firstTops[i]; });
       gsap.set(aggs,   { yPercent: 0 });
