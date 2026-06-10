@@ -782,14 +782,17 @@ STYLE = '''
   }
   /* Round only the OUTER ends; inner (centre) ends are square so the two
      halves form one clean flat bar at rest (no centre pinch). */
-  #hw-v4-pill .hw-v4-toggle::before {
-    left:12px; transform-origin:100% 50%;            /* right edge = centre */
-    border-radius:9999px 0 0 9999px;
-  }
-  #hw-v4-pill .hw-v4-toggle::after  {
-    left:24px; transform-origin:0% 50%;              /* left edge  = centre */
-    border-radius:0 9999px 9999px 0;
-  }
+  #hw-v4-pill .hw-v4-toggle::before { left:12px; border-radius:9999px 0 0 9999px; }
+  #hw-v4-pill .hw-v4-toggle::after  { left:24px; border-radius:0 9999px 9999px 0; }
+  /* Pivot point is set PER STATE (not in :hover) so it's constant while
+     hovering — avoids a jump when the bend animates back out.
+       collapsed → pivot at OUTER tips so the CENTRE swings DOWN (tips
+                   stay put). expanded → pivot at the CENTRE so the tips
+                   move (centre stays). */
+  #hw-v4-pill.hw-v4-collapsed .hw-v4-toggle::before { transform-origin:0% 50%; }   /* outer (left) */
+  #hw-v4-pill.hw-v4-collapsed .hw-v4-toggle::after  { transform-origin:100% 50%; } /* outer (right) */
+  #hw-v4-pill.hw-v4-expanded  .hw-v4-toggle::before { transform-origin:100% 50%; } /* centre */
+  #hw-v4-pill.hw-v4-expanded  .hw-v4-toggle::after  { transform-origin:0% 50%; }   /* centre */
   /* Hover trigger: bend fires when hovering the handle OR anywhere on
      the pill (the whole widget is the click/hover target). */
   #hw-v4-pill:hover .hw-v4-toggle::before,
