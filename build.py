@@ -1449,12 +1449,15 @@ SCRIPT = '''
       gsap.set(aggs,   { yPercent: 130 });
       gsap.set(sparks, { scaleY: 0 });
 
-      // PLAY -- beats offset in time.
-      v4Tl = gsap.timeline({ onComplete: doneCleanup });
-      v4Tl.to(pill,   { height: endH, duration: 0.40, ease: 'power3.inOut' }, 0.00)   // 1 container
-          .to(heads,  { y: 0, duration: 0.38, ease: 'power3.out' }, 0.12)             // 2 heads glide
-          .to(aggs,   { yPercent: 0, duration: 0.28, ease: 'power2.out', stagger: 0.05 }, 0.30) // 3 tag rises
-          .to(sparks, { scaleY: 1, duration: 0.34, ease: 'power2.out', stagger: 0.06 }, 0.42);  // 4 graph grows
+      // PLAY -- beats kept in ORDER but heavily overlapped with OUT-eases
+      // so the whole thing reads as one continuous, smooth expansion
+      // (no stall-then-rush). Container leads; heads/tags/graphs cascade
+      // in just behind it and all settle together.
+      v4Tl = gsap.timeline({ defaults: { ease: 'power2.out' }, onComplete: doneCleanup });
+      v4Tl.to(pill,   { height: endH, duration: 0.50 }, 0.00)                       // 1 container
+          .to(heads,  { y: 0, duration: 0.46 }, 0.06)                              // 2 heads glide
+          .to(aggs,   { yPercent: 0, duration: 0.34, stagger: 0.04 }, 0.16)        // 3 tag rises
+          .to(sparks, { scaleY: 1, duration: 0.40, stagger: 0.05 }, 0.20);         // 4 graph grows
     } else {
       // COLLAPSE -- keep expanded layout (content stays animatable),
       // measure the collapsed target, run reverse beats, commit collapsed
@@ -1473,7 +1476,10 @@ SCRIPT = '''
       gsap.set(sparks, { scaleY: 1 });
 
       v4Expanded = false;
+      // Reverse order, overlapped with IN-eases so content gathers up
+      // and the container closes in one continuous motion.
       v4Tl = gsap.timeline({
+        defaults: { ease: 'power2.in' },
         onComplete: function () {
           pill.classList.remove('hw-v4-expanded');
           pill.classList.add('hw-v4-collapsed');
@@ -1481,10 +1487,10 @@ SCRIPT = '''
           doneCleanup();
         }
       });
-      v4Tl.to(sparks, { scaleY: 0, duration: 0.30, ease: 'power2.in', stagger: 0.05 }, 0.00)     // 4' graph shrinks
-          .to(aggs,   { yPercent: 130, duration: 0.24, ease: 'power2.in', stagger: 0.04 }, 0.12) // 3' tag sinks
-          .to(heads,  { y: function (i) { return dyCol[i]; }, duration: 0.34, ease: 'power3.inOut' }, 0.24) // 2' heads glide back
-          .to(pill,   { height: endHcol, duration: 0.34, ease: 'power3.inOut' }, 0.30);          // 1' container shrinks
+      v4Tl.to(sparks, { scaleY: 0, duration: 0.32, stagger: 0.04 }, 0.00)             // 4' graph shrinks
+          .to(aggs,   { yPercent: 130, duration: 0.26, stagger: 0.03 }, 0.08)        // 3' tag sinks
+          .to(heads,  { y: function (i) { return dyCol[i]; }, duration: 0.40 }, 0.14) // 2' heads glide back
+          .to(pill,   { height: endHcol, duration: 0.44 }, 0.16);                    // 1' container shrinks
     }
   };
   function attachV4() {
