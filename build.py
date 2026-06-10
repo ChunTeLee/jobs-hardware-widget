@@ -759,18 +759,46 @@ STYLE = '''
      bar is its ::before pseudo-element. */
   #hw-v4-pill .hw-v4-toggle {
     position:absolute; left:50%; bottom:-13px; transform:translateX(-50%);
-    display:flex; align-items:center; justify-content:center;
     width:48px; height:14px; padding:0; margin:0;
     border:none; background:transparent; cursor:pointer;
   }
-  #hw-v4-pill .hw-v4-toggle::before {
-    content:''; display:block;
-    width:24px; height:4px; border-radius:9999px;
+  /* The grabber is TWO halves (::before = left, ::after = right) that
+     meet at the centre to form one flat bar at rest. On hover they
+     pivot at the centre and bend into a shallow chevron:
+       collapsed → bends DOWN (a flat down-arrow = "expand downward")
+       expanded  → bends UP   (a flat up-arrow   = "collapse upward")
+     Each half rotates around the shared centre point. Explicit
+     rotate(0) base + will-change so the transition interpolates
+     smoothly and survives parent reflows (per verification-loop skill).
+  */
+  #hw-v4-pill .hw-v4-toggle::before,
+  #hw-v4-pill .hw-v4-toggle::after {
+    content:''; position:absolute; top:5px;          /* (14-4)/2 centre */
+    width:12px; height:4px;
     background:rgba(110,118,129,0.40);   /* semi-transparent */
-    transition:background .15s ease;
+    transform:rotate(0deg);
+    transition:transform .2s ease, background .15s ease;
+    will-change:transform;
   }
-  #hw-v4-pill .hw-v4-toggle:hover::before { background:rgba(110,118,129,0.65); }
-  /* The chevron icon is not used in the grabber design. */
+  /* Round only the OUTER ends; inner (centre) ends are square so the two
+     halves form one clean flat bar at rest (no centre pinch). */
+  #hw-v4-pill .hw-v4-toggle::before {
+    left:12px; transform-origin:100% 50%;            /* right edge = centre */
+    border-radius:9999px 0 0 9999px;
+  }
+  #hw-v4-pill .hw-v4-toggle::after  {
+    left:24px; transform-origin:0% 50%;              /* left edge  = centre */
+    border-radius:0 9999px 9999px 0;
+  }
+  #hw-v4-pill .hw-v4-toggle:hover::before,
+  #hw-v4-pill .hw-v4-toggle:hover::after { background:rgba(110,118,129,0.65); }
+  /* Collapsed hover → DOWN chevron (\/): left half tilts to \, right to / */
+  #hw-v4-pill.hw-v4-collapsed .hw-v4-toggle:hover::before { transform:rotate(20deg); }
+  #hw-v4-pill.hw-v4-collapsed .hw-v4-toggle:hover::after  { transform:rotate(-20deg); }
+  /* Expanded hover → UP chevron (/\): mirror of the above */
+  #hw-v4-pill.hw-v4-expanded .hw-v4-toggle:hover::before { transform:rotate(-20deg); }
+  #hw-v4-pill.hw-v4-expanded .hw-v4-toggle:hover::after  { transform:rotate(20deg); }
+  /* The chevron <svg> icon is not used in the grabber design. */
   .hw-v4-chevron { display:none; }
 
   /* Shared row chrome (BOTH states) — vertical stack of rows, each row
