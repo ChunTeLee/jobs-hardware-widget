@@ -721,7 +721,11 @@ STYLE = '''
     position:absolute;
     /* top set inline by attachV4 = logs header strip height */
     right:0; z-index:10;
-    box-sizing:border-box; overflow:hidden;
+    box-sizing:border-box;
+    /* overflow VISIBLE so the grabber handle can float BELOW the
+       container's bottom border (outside the carve). The pill's own
+       rounded corner still clips its border+bg; only children escape. */
+    overflow:visible;
     /* VERTICAL stack: 3 metric rows stacked top→bottom in BOTH states.
        10px padding all sides; 10px gap between rows. Single padding +
        gap token = 10. Width is LOCKED to a constant value so the rows
@@ -730,10 +734,7 @@ STYLE = '''
        pushes every row leftward (pill is right-anchored). */
     width:172px;
     display:flex; flex-direction:column;
-    /* 10px on top/left/right; extra bottom padding (18px) reserves room
-       for the grabber handle that sits on the bottom edge, so content
-       (esp. the last sparkline when expanded) never overlaps it. */
-    gap:10px; padding:10px 10px 18px;
+    gap:10px; padding:10px;
     background:rgb(249 250 251);               /* gray-50 (log content bg) */
     border-left:1px solid rgb(229 231 235);    /* gray-200 */
     border-bottom:1px solid rgb(229 231 235);
@@ -750,13 +751,14 @@ STYLE = '''
      already encodes status (per-metric color). Avoid the extra
      attention-grabbing element. */
   #hw-v4-pill .hw-v4-head-live { display:none; }
-  /* COLLAPSE HANDLE — a small rounded "grabber" bar centered on the
-     widget's bottom edge (the open edge of the carve), echoing the
-     drag-handle on the HF page header. Present in BOTH states; clicking
-     it (or anywhere on the pill) toggles. The button is an invisible
-     hit area; the visible bar is its ::before pseudo-element. */
+  /* COLLAPSE HANDLE — a small semi-transparent rounded "grabber" bar
+     that FLOATS just BELOW the widget's bottom border (outside the
+     carve), over the log content. Echoes the drag-handle on the HF
+     page header. Present in BOTH states; clicking it (or anywhere on
+     the pill) toggles. The button is an invisible hit area; the visible
+     bar is its ::before pseudo-element. */
   #hw-v4-pill .hw-v4-toggle {
-    position:absolute; left:50%; bottom:0; transform:translateX(-50%);
+    position:absolute; left:50%; bottom:-13px; transform:translateX(-50%);
     display:flex; align-items:center; justify-content:center;
     width:48px; height:14px; padding:0; margin:0;
     border:none; background:transparent; cursor:pointer;
@@ -764,14 +766,12 @@ STYLE = '''
   #hw-v4-pill .hw-v4-toggle::before {
     content:''; display:block;
     width:24px; height:4px; border-radius:9999px;
-    background:rgba(110,118,129,0.45);
+    background:rgba(110,118,129,0.40);   /* semi-transparent */
     transition:background .15s ease;
   }
-  #hw-v4-pill .hw-v4-toggle:hover::before { background:rgba(110,118,129,0.7); }
+  #hw-v4-pill .hw-v4-toggle:hover::before { background:rgba(110,118,129,0.65); }
   /* The chevron icon is not used in the grabber design. */
   .hw-v4-chevron { display:none; }
-  /* Reserve a little bottom room so the grabber bar doesn't overlap the
-     last row's content (the bar lives in the pill's 10px bottom pad). */
 
   /* Shared row chrome (BOTH states) — vertical stack of rows, each row
      has its row-head (dot + label + val) on one line. */
