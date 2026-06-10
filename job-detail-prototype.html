@@ -664,7 +664,7 @@
        stay at exactly the same x in collapsed AND expanded. Without
        this, expanding makes the sparkline force the pill wider, which
        pushes every row leftward (pill is right-anchored). */
-    width:140px;
+    width:172px;
     display:flex; flex-direction:column;
     gap:10px; padding:10px;
     background:rgb(249 250 251);               /* gray-50 (log content bg) */
@@ -712,15 +712,15 @@
   /* Shared chrome (matches V3) */
   .hw-v4-dot { width:8px; height:8px; border-radius:9999px; background:#6e7681; flex-shrink:0; }
   .hw-v4-row-label {
-    font-size:10px; color:#8b949e; font-weight:600;
+    font-size:12px; color:#8b949e; font-weight:600;
     text-transform:uppercase; letter-spacing:.05em;
   }
   .hw-v4-agg {
-    font-size:9px; font-weight:600; letter-spacing:.07em;
+    font-size:12px; font-weight:600; letter-spacing:.07em;
     text-transform:uppercase; color:#8b949e;
   }
   .hw-v4-val {
-    font-size:11px; color:#e6edf3; font-weight:500;
+    font-size:12px; color:#e6edf3; font-weight:500;
     font-variant-numeric:tabular-nums; white-space:nowrap;
   }
   .hw-v4-spark { height:30px; }
@@ -1321,7 +1321,7 @@
   };
 
   document.addEventListener('DOMContentLoaded', function () {
-    hwSetVersion('v3');
+    hwSetVersion('v4');
     hwSetState('completed');
   });
 
