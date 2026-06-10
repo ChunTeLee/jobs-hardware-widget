@@ -1383,16 +1383,79 @@ SCRIPT = '''
   };
 
   // V4 — Nested top-right inside the logs card.
+  // GSAP-driven collapse/expand for the V4 Nested widget.
+  //   expand:   pill HEIGHT grows (anchored at top → drops downward over
+  //             the logs); agg tags + sparklines fade/slide in, staggered.
+  //   collapse: sparklines + tags fade out, height shrinks, then the
+  //             collapsed class is committed (which display:none-s them).
+  // The width is locked in CSS (172px), so only height + content animate.
+  // Falls back to an instant class swap if GSAP didn't load.
+  var v4Tl = null;
   window.hwToggleV4 = function (ev) {
     if (ev) ev.stopPropagation();
     var pill = document.getElementById('hw-v4-pill');
     var btn  = document.getElementById('hw-v4-toggle');
     if (!pill) return;
-    v4Expanded = !v4Expanded;
-    pill.classList.toggle('hw-v4-expanded', v4Expanded);
-    pill.classList.toggle('hw-v4-collapsed', !v4Expanded);
-    if (btn) btn.title = v4Expanded ? 'Collapse' : 'Expand';
-    applyState(currentState);
+
+    // Fallback: no GSAP → instant toggle (original behaviour).
+    if (typeof gsap === 'undefined') {
+      v4Expanded = !v4Expanded;
+      pill.classList.toggle('hw-v4-expanded', v4Expanded);
+      pill.classList.toggle('hw-v4-collapsed', !v4Expanded);
+      if (btn) btn.title = v4Expanded ? 'Collapse' : 'Expand';
+      applyState(currentState);
+      return;
+    }
+
+    if (v4Tl) v4Tl.kill();   // cancel any in-flight animation (fast toggles)
+    var sparks = pill.querySelectorAll('.hw-v4-spark');
+    var aggs   = pill.querySelectorAll('.hw-v4-agg');
+    var startH = pill.offsetHeight;
+    var willExpand = !v4Expanded;
+    if (btn) btn.title = willExpand ? 'Collapse' : 'Expand';
+
+    if (willExpand) {
+      // Commit expanded layout, measure target height, animate from start.
+      v4Expanded = true;
+      pill.classList.add('hw-v4-expanded');
+      pill.classList.remove('hw-v4-collapsed');
+      applyState(currentState);                 // render sparklines + tags
+      gsap.set(pill, { height: 'auto' });
+      var endH = pill.offsetHeight;
+      gsap.set(pill, { height: startH });
+      gsap.set([aggs, sparks], { opacity: 0, y: -4 });   // hidden → no spill
+      v4Tl = gsap.timeline({
+        onComplete: function () {
+          gsap.set(pill, { clearProps: 'height' });
+          gsap.set([aggs, sparks], { clearProps: 'opacity,transform' });
+        }
+      });
+      v4Tl.to(pill,   { height: endH, duration: 0.45, ease: 'power3.inOut' }, 0)
+          .to(aggs,   { opacity: 1, y: 0, duration: 0.25, stagger: 0.05 }, 0.12)
+          .to(sparks, { opacity: 1, y: 0, duration: 0.30, stagger: 0.07, ease: 'power2.out' }, 0.15);
+    } else {
+      // Measure collapsed target height (toggle classes briefly), then
+      // animate the fade-out + shrink while still in expanded layout.
+      pill.classList.remove('hw-v4-expanded');
+      pill.classList.add('hw-v4-collapsed');
+      gsap.set(pill, { height: 'auto' });
+      var endHcol = pill.offsetHeight;
+      pill.classList.add('hw-v4-expanded');      // back to expanded for the anim
+      pill.classList.remove('hw-v4-collapsed');
+      gsap.set(pill, { height: startH });
+      v4Expanded = false;
+      v4Tl = gsap.timeline({
+        onComplete: function () {
+          pill.classList.remove('hw-v4-expanded');
+          pill.classList.add('hw-v4-collapsed');
+          applyState(currentState);
+          gsap.set(pill, { clearProps: 'height' });
+          gsap.set([aggs, sparks], { clearProps: 'opacity,transform' });
+        }
+      });
+      v4Tl.to([sparks, aggs], { opacity: 0, y: -4, duration: 0.20, stagger: 0.04 }, 0)
+          .to(pill,           { height: endHcol, duration: 0.40, ease: 'power3.inOut' }, 0.05);
+    }
   };
   function attachV4() {
     var pill = document.getElementById('hw-v4-pill');
@@ -1499,6 +1562,9 @@ full_html = f"""<!DOCTYPE html>
   <!-- KaTeX (loaded by source) -->
   <link rel="stylesheet"
         href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.12.0/katex.min.css" />
+
+  <!-- GSAP — slick collapse/expand animation for the V4 Nested widget -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
 </head>
 <body class="flex flex-col min-h-dvh bg-white dark:bg-gray-950 text-black JobPage">
   <div class="flex min-h-dvh flex-col">
