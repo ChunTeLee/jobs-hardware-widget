@@ -774,25 +774,22 @@ STYLE = '''
   #hw-v4-pill .hw-v4-toggle::before,
   #hw-v4-pill .hw-v4-toggle::after {
     content:''; position:absolute; top:5px;          /* (14-4)/2 centre */
-    width:12px; height:4px;
+    height:4px;                          /* width + left set per half below */
     background:rgba(110,118,129,0.40);   /* semi-transparent */
     transform:rotate(0deg);
     transition:transform .2s ease, background .15s ease;
     will-change:transform;
   }
-  /* Round only the OUTER ends; inner (centre) ends are square so the two
-     halves form one clean flat bar at rest (no centre pinch). */
-  #hw-v4-pill .hw-v4-toggle::before { left:12px; border-radius:9999px 0 0 9999px; }
-  #hw-v4-pill .hw-v4-toggle::after  { left:24px; border-radius:0 9999px 9999px 0; }
-  /* Pivot point is set PER STATE (not in :hover) so it's constant while
-     hovering — avoids a jump when the bend animates back out.
-       collapsed → pivot at OUTER tips so the CENTRE swings DOWN (tips
-                   stay put). expanded → pivot at the CENTRE so the tips
-                   move (centre stays). */
-  #hw-v4-pill.hw-v4-collapsed .hw-v4-toggle::before { transform-origin:0% 50%; }   /* outer (left) */
-  #hw-v4-pill.hw-v4-collapsed .hw-v4-toggle::after  { transform-origin:100% 50%; } /* outer (right) */
-  #hw-v4-pill.hw-v4-expanded  .hw-v4-toggle::before { transform-origin:100% 50%; } /* centre */
-  #hw-v4-pill.hw-v4-expanded  .hw-v4-toggle::after  { transform-origin:0% 50%; }   /* centre */
+  /* The two halves OVERLAP by ~4px at the centre and are fully rounded,
+     so the joint stays connected when they bend. Without the overlap,
+     rotating each half around its OUTER tip pulls the inner ends ~1.5px
+     apart and a crack opens at the bend. Outer tips sit at x=11 and 37;
+     before spans 11-26, after spans 22-37 (overlap 22-26). */
+  #hw-v4-pill .hw-v4-toggle::before { left:11px; width:15px; border-radius:9999px; transform-origin:0% 50%; }   /* pivot at left tip  */
+  #hw-v4-pill .hw-v4-toggle::after  { left:22px; width:15px; border-radius:9999px; transform-origin:100% 50%; } /* pivot at right tip */
+  /* Both states pivot at the OUTER tips (constant origin → no jump on
+     un-hover). collapsed bends the centre DOWN (▼); expanded bends the
+     centre UP (▲) — a clean mirror, tips fixed in both. */
   /* Hover trigger: bend fires when hovering the handle OR anywhere on
      the pill (the whole widget is the click/hover target). */
   #hw-v4-pill:hover .hw-v4-toggle::before,
