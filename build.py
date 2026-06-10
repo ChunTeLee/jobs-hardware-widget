@@ -747,8 +747,36 @@ STYLE = '''
      already encodes status (per-metric color). Avoid the extra
      attention-grabbing element. */
   #hw-v4-pill .hw-v4-head-live { display:none; }
-  /* Hide the chevron button — pill is clickable as a whole. */
-  #hw-v4-pill .hw-v4-toggle { display:none; }
+  /* COLLAPSE HANDLE — echoes the HF Space floating-header handle: a
+     bordered control attached to the container's open edge, always
+     visible in BOTH states. V4 is a vertical stack carved into the log
+     corner (top + right are the card's borders, BOTTOM is the open
+     edge) — so the handle is a full-width strip at the bottom, divided
+     by a border-top, with a centered chevron. Breaks out of the pill's
+     10px padding (negative margins) to sit flush edge-to-edge. */
+  #hw-v4-pill .hw-v4-toggle {
+    display:flex; align-items:center; justify-content:center;
+    width:calc(100% + 20px);
+    margin:0 -10px -10px;       /* flush to left/right/bottom of pill */
+    padding:5px 0;
+    border:none;
+    border-top:1px solid rgb(229 231 235);   /* gray-200 divider */
+    background:transparent;
+    color:#8b949e; cursor:pointer;
+  }
+  :where(.dark) #hw-v4-pill .hw-v4-toggle {
+    border-top-color:rgb(31 41 55);          /* gray-800 */
+  }
+  #hw-v4-pill .hw-v4-toggle:hover { background:rgba(139,148,158,.12); }
+  /* Chevron — smooth rotation (same hardening as V3: explicit rotate(0)
+     base + will-change so it interpolates and survives parent reflows). */
+  .hw-v4-chevron {
+    transform:rotate(0deg);
+    transition:transform .25s ease;
+    transform-origin:50% 50%;
+    will-change:transform;
+  }
+  .hw-v4-expanded .hw-v4-chevron { transform:rotate(180deg); }
 
   /* Shared row chrome (BOTH states) — vertical stack of rows, each row
      has its row-head (dot + label + val) on one line. */
