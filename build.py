@@ -775,7 +775,9 @@ STYLE = '''
   #hw-v4-pill .hw-v4-toggle::after {
     content:''; position:absolute; top:5px;          /* (14-4)/2 centre */
     height:4px;                          /* width + left set per half below */
-    background:rgba(110,118,129,0.40);   /* semi-transparent */
+    /* Full opacity + border colour. Opaque so the 4px centre overlap of
+       the two halves doesn't composite into a brighter/darker spot. */
+    background:rgb(229 231 235);         /* gray-200 (= widget border) */
     transform:rotate(0deg);
     transition:transform .2s ease, background .15s ease;
     will-change:transform;
@@ -787,13 +789,18 @@ STYLE = '''
      before spans 11-26, after spans 22-37 (overlap 22-26). */
   #hw-v4-pill .hw-v4-toggle::before { left:11px; width:15px; border-radius:9999px; transform-origin:0% 50%; }   /* pivot at left tip  */
   #hw-v4-pill .hw-v4-toggle::after  { left:22px; width:15px; border-radius:9999px; transform-origin:100% 50%; } /* pivot at right tip */
+  :where(.dark) #hw-v4-pill .hw-v4-toggle::before,
+  :where(.dark) #hw-v4-pill .hw-v4-toggle::after { background:rgb(31 41 55); }   /* gray-800 (= dark border) */
   /* Both states pivot at the OUTER tips (constant origin → no jump on
      un-hover). collapsed bends the centre DOWN (▼); expanded bends the
      centre UP (▲) — a clean mirror, tips fixed in both. */
   /* Hover trigger: bend fires when hovering the handle OR anywhere on
      the pill (the whole widget is the click/hover target). */
+  /* Hover: a touch darker than the border for feedback (still opaque). */
   #hw-v4-pill:hover .hw-v4-toggle::before,
-  #hw-v4-pill:hover .hw-v4-toggle::after { background:rgba(110,118,129,0.65); }
+  #hw-v4-pill:hover .hw-v4-toggle::after { background:rgb(156 163 175); }       /* gray-400 */
+  :where(.dark) #hw-v4-pill:hover .hw-v4-toggle::before,
+  :where(.dark) #hw-v4-pill:hover .hw-v4-toggle::after { background:rgb(75 85 99); } /* gray-600 */
   /* Collapsed hover → DOWN chevron (\/): left half tilts to \, right to / */
   #hw-v4-pill.hw-v4-collapsed:hover .hw-v4-toggle::before { transform:rotate(20deg); }
   #hw-v4-pill.hw-v4-collapsed:hover .hw-v4-toggle::after  { transform:rotate(-20deg); }
