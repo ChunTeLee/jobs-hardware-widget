@@ -780,7 +780,11 @@ STYLE = '''
     background:rgb(229 231 235);         /* gray-200 (= widget border) */
     transform:rotate(0deg);
     transition:transform .2s ease, background .15s ease;
-    will-change:transform;
+    /* No will-change: it would promote each half to its own compositor
+       layer, which lags the button's layout reposition by a frame during
+       the height animation — making the bars trail the moving border.
+       The hover bend still interpolates fine (rotate(0) base + CSS
+       transition). */
   }
   /* The two halves OVERLAP by ~4px at the centre and are fully rounded,
      so the joint stays connected when they bend. Without the overlap,
