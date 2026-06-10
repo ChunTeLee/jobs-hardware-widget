@@ -984,14 +984,13 @@ SCRIPT = '''
       if (aggEl) aggEl.textContent = aggText;
       if (valEl) {
         valEl.textContent = valText;
-        // Tint the VALUE text to match the metric colour ONLY when in
-        // an alarm zone (amber = approaching limit, red = at limit /
-        // failed). Healthy (indigo) and cancelled (grey) leave the
-        // default text colour so they don't compete for attention.
-        // Same rule applies to the AGG tag for consistency.
-        var alarm = (color === AMBER || color === RED);
-        valEl.style.color = alarm ? color : '';
-        if (aggEl) aggEl.style.color = alarm ? color : '';
+        // Tint val + agg text to match the metric colour ONLY when RED
+        // (at the limit / failed). Amber, indigo, grey all keep the
+        // default text colour so the eye lands only on truly critical
+        // values — amber stays "approaching, not yet a problem."
+        var critical = (color === RED);
+        valEl.style.color = critical ? color : '';
+        if (aggEl) aggEl.style.color = critical ? color : '';
       }
       if (style === 'bar')   renderBar(prefix, m, pct, color);
       else if (style === 'spark') renderSpark(prefix, m, sparkSeries, color, sparkMode);
