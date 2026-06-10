@@ -730,7 +730,10 @@ STYLE = '''
        pushes every row leftward (pill is right-anchored). */
     width:172px;
     display:flex; flex-direction:column;
-    gap:10px; padding:10px;
+    /* 10px on top/left/right; extra bottom padding (18px) reserves room
+       for the grabber handle that sits on the bottom edge, so content
+       (esp. the last sparkline when expanded) never overlaps it. */
+    gap:10px; padding:10px 10px 18px;
     background:rgb(249 250 251);               /* gray-50 (log content bg) */
     border-left:1px solid rgb(229 231 235);    /* gray-200 */
     border-bottom:1px solid rgb(229 231 235);
@@ -747,36 +750,28 @@ STYLE = '''
      already encodes status (per-metric color). Avoid the extra
      attention-grabbing element. */
   #hw-v4-pill .hw-v4-head-live { display:none; }
-  /* COLLAPSE HANDLE — echoes the HF Space floating-header handle: a
-     bordered control attached to the container's open edge, always
-     visible in BOTH states. V4 is a vertical stack carved into the log
-     corner (top + right are the card's borders, BOTTOM is the open
-     edge) — so the handle is a full-width strip at the bottom, divided
-     by a border-top, with a centered chevron. Breaks out of the pill's
-     10px padding (negative margins) to sit flush edge-to-edge. */
+  /* COLLAPSE HANDLE — a small rounded "grabber" bar centered on the
+     widget's bottom edge (the open edge of the carve), echoing the
+     drag-handle on the HF page header. Present in BOTH states; clicking
+     it (or anywhere on the pill) toggles. The button is an invisible
+     hit area; the visible bar is its ::before pseudo-element. */
   #hw-v4-pill .hw-v4-toggle {
+    position:absolute; left:50%; bottom:0; transform:translateX(-50%);
     display:flex; align-items:center; justify-content:center;
-    width:calc(100% + 20px);
-    margin:0 -10px -10px;       /* flush to left/right/bottom of pill */
-    padding:5px 0;
-    border:none;
-    border-top:1px solid rgb(229 231 235);   /* gray-200 divider */
-    background:transparent;
-    color:#8b949e; cursor:pointer;
+    width:48px; height:14px; padding:0; margin:0;
+    border:none; background:transparent; cursor:pointer;
   }
-  :where(.dark) #hw-v4-pill .hw-v4-toggle {
-    border-top-color:rgb(31 41 55);          /* gray-800 */
+  #hw-v4-pill .hw-v4-toggle::before {
+    content:''; display:block;
+    width:24px; height:4px; border-radius:9999px;
+    background:rgba(110,118,129,0.45);
+    transition:background .15s ease;
   }
-  #hw-v4-pill .hw-v4-toggle:hover { background:rgba(139,148,158,.12); }
-  /* Chevron — smooth rotation (same hardening as V3: explicit rotate(0)
-     base + will-change so it interpolates and survives parent reflows). */
-  .hw-v4-chevron {
-    transform:rotate(0deg);
-    transition:transform .25s ease;
-    transform-origin:50% 50%;
-    will-change:transform;
-  }
-  .hw-v4-expanded .hw-v4-chevron { transform:rotate(180deg); }
+  #hw-v4-pill .hw-v4-toggle:hover::before { background:rgba(110,118,129,0.7); }
+  /* The chevron icon is not used in the grabber design. */
+  .hw-v4-chevron { display:none; }
+  /* Reserve a little bottom room so the grabber bar doesn't overlap the
+     last row's content (the bar lives in the pill's 10px bottom pad). */
 
   /* Shared row chrome (BOTH states) — vertical stack of rows, each row
      has its row-head (dot + label + val) on one line. */
