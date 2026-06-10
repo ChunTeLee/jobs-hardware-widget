@@ -769,7 +769,9 @@ STYLE = '''
   .hw-v4-collapsed .hw-v4-spark { display:none; }
   /* EXPANDED — head row stays put; agg tag appears and sparkline appears
      directly below each row's head. Spark height shortened from 30 → 20
-     so the panel doesn't get too tall. */
+     so the panel doesn't get too tall. 15px gap between category groups
+     (each group = head + sparkline) so they read as distinct blocks. */
+  .hw-v4-expanded .hw-v4-rows { gap:15px; }
   .hw-v4-expanded .hw-v4-agg { display:inline; }
   .hw-v4-expanded .hw-v4-spark { display:block; }
   .hw-v4-spark { height:20px; }
