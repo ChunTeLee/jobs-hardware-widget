@@ -795,14 +795,6 @@ STYLE = '''
      No agg tag, no sparkline. */
   .hw-v4-collapsed .hw-v4-agg { display:none; }
   .hw-v4-collapsed .hw-v4-spark { display:none; }
-  /* Dashed separator between categories (collapsed only). Each row
-     except the last gets a dashed bottom rule with 10px padding below
-     it; the pill's 10px flex gap adds 10px on the far side, centering
-     the line in a 20px band between adjacent categories. */
-  .hw-v4-collapsed .hw-v4-row:not(:last-child) {
-    padding-bottom:10px;
-    border-bottom:1px dashed rgba(110,118,129,0.35);
-  }
   /* EXPANDED — head row stays put; agg tag appears and sparkline appears
      directly below each row's head. Spark height shortened from 30 → 20
      so the panel doesn't get too tall. 15px gap between category groups
