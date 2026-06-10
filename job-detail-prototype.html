@@ -722,9 +722,13 @@
     text-transform:uppercase; color:#8b949e;
   }
   .hw-v4-val {
-    font-size:12px; color:#e6edf3; font-weight:500;
+    /* Match the log message body text: Tailwind text-gray-700 /
+       dark:text-gray-300. (RED alarm tint still overrides inline when
+       a metric is critical.) */
+    font-size:12px; color:#374151; font-weight:500;
     font-variant-numeric:tabular-nums; white-space:nowrap;
   }
+  :where(.dark) .hw-v4-val { color:#d1d5db; }
   .hw-v4-spark { height:30px; }
 </style>
 <script>
