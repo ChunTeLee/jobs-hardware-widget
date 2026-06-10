@@ -695,7 +695,10 @@
   .hw-v4-row-head {
     display:flex; flex-direction:row; align-items:center; gap:6px;
   }
-  .hw-v4-row-spacer { flex:1; }
+  /* Spacer hidden in V4 — values sit RIGHT AFTER the label (one row-head
+     gap apart, 6px) instead of being pushed to the right edge. User
+     wants the name + metric value visually grouped. */
+  .hw-v4-row-spacer { display:none; }
   /* COLLAPSED — only the head row visible (dot + label + spacer + val).
      No agg tag, no sparkline. */
   .hw-v4-collapsed .hw-v4-agg { display:none; }
