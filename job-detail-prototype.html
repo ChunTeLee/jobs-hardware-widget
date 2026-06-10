@@ -664,7 +664,7 @@
        stay at exactly the same x in collapsed AND expanded. Without
        this, expanding makes the sparkline force the pill wider, which
        pushes every row leftward (pill is right-anchored). */
-    width:160px;
+    width:140px;
     display:flex; flex-direction:column;
     gap:10px; padding:10px;
     background:rgb(249 250 251);               /* gray-50 (log content bg) */
@@ -695,10 +695,10 @@
   .hw-v4-row-head {
     display:flex; flex-direction:row; align-items:center; gap:6px;
   }
-  /* Spacer hidden in V4 — values sit RIGHT AFTER the label (one row-head
-     gap apart, 6px) instead of being pushed to the right edge. User
-     wants the name + metric value visually grouped. */
-  .hw-v4-row-spacer { display:none; }
+  /* Spacer flex:1 — values justified to the RIGHT edge of each row;
+     labels stay at the LEFT. Reading is a left→right scan: label then
+     value with consistent right-alignment of all three values. */
+  .hw-v4-row-spacer { flex:1; }
   /* COLLAPSED — only the head row visible (dot + label + spacer + val).
      No agg tag, no sparkline. */
   .hw-v4-collapsed .hw-v4-agg { display:none; }
