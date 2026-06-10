@@ -260,7 +260,7 @@
           <span id="hw-v4-gpu-util-dot" class="hw-v4-dot"></span>
           <span class="hw-v4-row-label">GPU</span>
           <span class="hw-v4-row-spacer"></span>
-          <span id="hw-v4-gpu-util-agg" class="hw-v4-agg"></span>
+          <span class="hw-v4-agg-mask"><span id="hw-v4-gpu-util-agg" class="hw-v4-agg"></span></span>
           <span id="hw-v4-gpu-util-val" class="hw-v4-val">&mdash;</span>
         </div>
         <div class="hw-v4-spark hw-spark-track">
@@ -273,7 +273,7 @@
           <span id="hw-v4-gpu-mem-dot" class="hw-v4-dot"></span>
           <span class="hw-v4-row-label">MEM</span>
           <span class="hw-v4-row-spacer"></span>
-          <span id="hw-v4-gpu-mem-agg" class="hw-v4-agg"></span>
+          <span class="hw-v4-agg-mask"><span id="hw-v4-gpu-mem-agg" class="hw-v4-agg"></span></span>
           <span id="hw-v4-gpu-mem-val" class="hw-v4-val">&mdash;</span>
         </div>
         <div class="hw-v4-spark hw-spark-track">
@@ -286,7 +286,7 @@
           <span id="hw-v4-cpu-util-dot" class="hw-v4-dot"></span>
           <span class="hw-v4-row-label">CPU</span>
           <span class="hw-v4-row-spacer"></span>
-          <span id="hw-v4-cpu-util-agg" class="hw-v4-agg"></span>
+          <span class="hw-v4-agg-mask"><span id="hw-v4-cpu-util-agg" class="hw-v4-agg"></span></span>
           <span id="hw-v4-cpu-util-val" class="hw-v4-val">&mdash;</span>
         </div>
         <div class="hw-v4-spark hw-spark-track">
@@ -758,18 +758,25 @@
      labels stay at the LEFT. Reading is a left→right scan: label then
      value with consistent right-alignment of all three values. */
   .hw-v4-row-spacer { flex:1; }
+  /* The agg tag lives inside an overflow-hidden MASK so it can slide up
+     "from the ground" (translateY from below → 0) on expand. The mask
+     (not just the inner tag) is display:none in collapsed so it adds no
+     phantom flex gap; it becomes inline-flex in expanded. */
+  .hw-v4-agg-mask { overflow:hidden; }
   /* COLLAPSED — only the head row visible (dot + label + spacer + val).
      No agg tag, no sparkline. */
-  .hw-v4-collapsed .hw-v4-agg { display:none; }
+  .hw-v4-collapsed .hw-v4-agg-mask { display:none; }
   .hw-v4-collapsed .hw-v4-spark { display:none; }
   /* EXPANDED — head row stays put; agg tag appears and sparkline appears
      directly below each row's head. Spark height shortened from 30 → 20
      so the panel doesn't get too tall. 15px gap between category groups
      (each group = head + sparkline) so they read as distinct blocks. */
   .hw-v4-expanded .hw-v4-rows { gap:15px; }
-  .hw-v4-expanded .hw-v4-agg { display:inline; }
+  .hw-v4-expanded .hw-v4-agg-mask { display:inline-flex; }
   .hw-v4-expanded .hw-v4-spark { display:block; }
-  .hw-v4-spark { height:20px; }
+  /* transform-origin bottom so the sparkline grows from its base on
+     expand (scaleY 0 → 1). */
+  .hw-v4-spark { height:20px; transform-origin:50% 100%; }
   /* Shared chrome (matches V3) */
   .hw-v4-dot { width:8px; height:8px; border-radius:9999px; background:#6e7681; flex-shrink:0; }
   .hw-v4-row-label {
@@ -1328,33 +1335,97 @@
   // tag slide-up → graph grow.
   // Falls back to an instant class swap if GSAP didn't load.
   var v4Tl = null;
+  function v4HeadTops(heads) {
+    var t = []; heads.forEach(function (h) { t.push(h.getBoundingClientRect().top); });
+    return t;
+  }
   window.hwToggleV4 = function (ev) {
     if (ev) ev.stopPropagation();
     var pill = document.getElementById('hw-v4-pill');
     var btn  = document.getElementById('hw-v4-toggle');
     if (!pill) return;
-
     var willExpand = !v4Expanded;
     if (btn) btn.title = willExpand ? 'Collapse' : 'Expand';
 
-    // Commit the target state + content.
-    v4Expanded = willExpand;
-    pill.classList.toggle('hw-v4-expanded', willExpand);
-    pill.classList.toggle('hw-v4-collapsed', !willExpand);
-    applyState(currentState);
+    // Fallback: no GSAP -> instant toggle.
+    if (typeof gsap === 'undefined') {
+      v4Expanded = willExpand;
+      pill.classList.toggle('hw-v4-expanded', willExpand);
+      pill.classList.toggle('hw-v4-collapsed', !willExpand);
+      applyState(currentState);
+      return;
+    }
 
-    // Fallback: no GSAP → instant (original behaviour).
-    if (typeof gsap === 'undefined') return;
+    if (v4Tl) v4Tl.kill();
+    var heads  = pill.querySelectorAll('.hw-v4-row-head');
+    var aggs   = pill.querySelectorAll('.hw-v4-agg');
+    var sparks = pill.querySelectorAll('.hw-v4-spark');
 
-    if (v4Tl) v4Tl.kill();   // cancel any in-flight animation (fast toggles)
-    var startH = pill.offsetHeight;            // current (animated) height
-    gsap.set(pill, { height: 'auto' });
-    var endH = pill.offsetHeight;              // natural target height
-    gsap.set(pill, { height: startH, overflow: 'hidden' });
-    v4Tl = gsap.timeline({
-      onComplete: function () { gsap.set(pill, { clearProps: 'height,overflow' }); }
-    });
-    v4Tl.to(pill, { height: endH, duration: 0.4, ease: 'power3.inOut' }, 0);
+    // FIRST: head positions + height in the CURRENT (pre-toggle) state.
+    var firstTops = v4HeadTops(heads);
+    var startH = pill.offsetHeight;
+    // Clear residual inline props from a prior animation (clean measure).
+    gsap.set([heads, aggs, sparks], { clearProps: 'transform,opacity' });
+
+    var doneCleanup = function () {
+      gsap.set(pill, { clearProps: 'height,overflow' });
+      gsap.set([heads, aggs, sparks], { clearProps: 'transform,opacity' });
+    };
+
+    if (willExpand) {
+      // LAST: commit expanded layout + content, measure target geometry.
+      v4Expanded = true;
+      pill.classList.add('hw-v4-expanded');
+      pill.classList.remove('hw-v4-collapsed');
+      applyState(currentState);
+      gsap.set(pill, { height: 'auto' });
+      var endH = pill.offsetHeight;
+      var lastTops = v4HeadTops(heads);
+
+      // INVERT: container small, heads at collapsed pos, tags below masks,
+      // graphs flat.
+      gsap.set(pill, { height: startH, overflow: 'hidden' });
+      heads.forEach(function (h, i) { gsap.set(h, { y: firstTops[i] - lastTops[i] }); });
+      gsap.set(aggs,   { yPercent: 130 });
+      gsap.set(sparks, { scaleY: 0 });
+
+      // PLAY -- beats offset in time.
+      v4Tl = gsap.timeline({ onComplete: doneCleanup });
+      v4Tl.to(pill,   { height: endH, duration: 0.40, ease: 'power3.inOut' }, 0.00)   // 1 container
+          .to(heads,  { y: 0, duration: 0.38, ease: 'power3.out' }, 0.12)             // 2 heads glide
+          .to(aggs,   { yPercent: 0, duration: 0.28, ease: 'power2.out', stagger: 0.05 }, 0.30) // 3 tag rises
+          .to(sparks, { scaleY: 1, duration: 0.34, ease: 'power2.out', stagger: 0.06 }, 0.42);  // 4 graph grows
+    } else {
+      // COLLAPSE -- keep expanded layout (content stays animatable),
+      // measure the collapsed target, run reverse beats, commit collapsed
+      // class on completion only.
+      pill.classList.remove('hw-v4-expanded');
+      pill.classList.add('hw-v4-collapsed');
+      gsap.set(pill, { height: 'auto' });
+      var endHcol = pill.offsetHeight;
+      var collapsedTops = v4HeadTops(heads);
+      pill.classList.add('hw-v4-expanded');
+      pill.classList.remove('hw-v4-collapsed');
+      gsap.set(pill, { height: startH, overflow: 'hidden' });
+      var dyCol = [];
+      heads.forEach(function (h, i) { dyCol[i] = collapsedTops[i] - firstTops[i]; });
+      gsap.set(aggs,   { yPercent: 0 });
+      gsap.set(sparks, { scaleY: 1 });
+
+      v4Expanded = false;
+      v4Tl = gsap.timeline({
+        onComplete: function () {
+          pill.classList.remove('hw-v4-expanded');
+          pill.classList.add('hw-v4-collapsed');
+          applyState(currentState);
+          doneCleanup();
+        }
+      });
+      v4Tl.to(sparks, { scaleY: 0, duration: 0.30, ease: 'power2.in', stagger: 0.05 }, 0.00)     // 4' graph shrinks
+          .to(aggs,   { yPercent: 130, duration: 0.24, ease: 'power2.in', stagger: 0.04 }, 0.12) // 3' tag sinks
+          .to(heads,  { y: function (i) { return dyCol[i]; }, duration: 0.34, ease: 'power3.inOut' }, 0.24) // 2' heads glide back
+          .to(pill,   { height: endHcol, duration: 0.34, ease: 'power3.inOut' }, 0.30);          // 1' container shrinks
+    }
   };
   function attachV4() {
     var pill = document.getElementById('hw-v4-pill');
