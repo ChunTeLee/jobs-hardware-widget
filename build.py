@@ -709,16 +709,22 @@ STYLE = '''
   }
   .hw-v3-spark { height:30px; }
 
-  /* ── V4 Nested — top-right corner of #hw-logs-card ──────────────────── */
-  /* Borderless top + right (reuse logs card's own border).
-     New left + bottom border carve out the hardware sub-region.
-     No own background pill chrome — inherits the logs-card header bg. */
+  /* ── V4 Nested — carved out of the LOG CONTENT area's top-right ─────── */
+  /* Anchored to #hw-logs-card with `top` set by JS to the height of the
+     logs header strip — so V4 sits in the corner BELOW the "Logs"
+     header bar, inside the gray content area. The header strip's own
+     border-b provides the V4 region's top edge; right edge reuses the
+     card's right border. Only LEFT + BOTTOM borders are drawn — the
+     L-carve. Background matches the log content area so the region
+     blends in (minimal visual weight; only the L-borders define it). */
   #hw-v4-pill {
-    position:absolute; top:0; right:0; z-index:10;
+    position:absolute;
+    /* top set inline by attachV4 = logs header strip height */
+    right:0; z-index:10;
     box-sizing:border-box; overflow:hidden;
     display:flex; flex-direction:row; align-items:center;
     gap:20px; padding:10px;
-    background:#fff;
+    background:rgb(249 250 251);               /* gray-50 (log content bg) */
     border-left:1px solid rgb(229 231 235);    /* gray-200 */
     border-bottom:1px solid rgb(229 231 235);
     border-bottom-left-radius:8px;             /* small inner rounding */
@@ -727,7 +733,7 @@ STYLE = '''
                height .3s cubic-bezier(0.4,0,0.2,1);
   }
   :where(.dark) #hw-v4-pill {
-    background:rgb(3 7 18);                    /* gray-950 */
+    background:rgb(17 24 39);                  /* gray-900 (matches log content dark bg) */
     border-left-color:rgb(31 41 55);           /* gray-800 */
     border-bottom-color:rgb(31 41 55);
   }
@@ -1340,12 +1346,20 @@ SCRIPT = '''
     var pill = document.getElementById('hw-v4-pill');
     var card = document.getElementById('hw-logs-card');
     if (!pill || !card) return;
-    // Card must be position:relative so the pill's absolute anchors at
-    // top:0 right:0 of the card (not the page).
+    // Card must be position:relative so V4's `top` + `right` anchor
+    // against the card, not the page.
     if (getComputedStyle(card).position === 'static') {
       card.style.position = 'relative';
     }
     if (pill.parentElement !== card) card.appendChild(pill);
+    // V4 sits BELOW the logs card's header strip (which contains the
+    // "Logs" title). Measure the header's height and set V4's top to
+    // it so V4 is carved out of the content area's top-right corner —
+    // not the header bar.
+    var header = card.firstElementChild;
+    if (header) {
+      pill.style.top = Math.round(header.getBoundingClientRect().height) + 'px';
+    }
     pill.classList.add('hw-v4-collapsed');
     pill.classList.remove('hw-v4-expanded');
     v4Expanded = false;
