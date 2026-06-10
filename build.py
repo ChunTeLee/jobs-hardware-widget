@@ -758,7 +758,7 @@ STYLE = '''
      the pill) toggles. The button is an invisible hit area; the visible
      bar is its ::before pseudo-element. */
   #hw-v4-pill .hw-v4-toggle {
-    position:absolute; left:50%; bottom:-13px; transform:translateX(-50%);
+    position:absolute; left:50%; bottom:-15px; transform:translateX(-50%);
     width:48px; height:14px; padding:0; margin:0;
     border:none; background:transparent; cursor:pointer;
   }
