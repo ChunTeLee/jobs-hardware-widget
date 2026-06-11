@@ -342,7 +342,7 @@ CONTROL = '''
   <div style="display:flex;background:#161b22;border:1px solid #30363d;
               border-radius:8px;padding:3px;gap:3px;">
     <button onclick="hwSetVersion('v4')" id="hw-ver-v4" class="hw-seg" style="flex:1;">Nested</button>
-    <button onclick="hwSetVersion('v3')" id="hw-ver-v3" class="hw-seg" style="flex:1;">Dropdown Pill</button>
+    <button onclick="hwSetVersion('v3')" id="hw-ver-v3" class="hw-seg" style="flex:1;display:none;">Dropdown Pill</button>
     <button onclick="hwSetVersion('v2')" id="hw-ver-v2" class="hw-seg" style="flex:1;display:none;">Trend</button>
     <button onclick="hwSetVersion('v1')" id="hw-ver-v1" class="hw-seg" style="flex:1;display:none;">V1 Bar</button>
   </div>
