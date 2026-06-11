@@ -755,6 +755,17 @@
   /* Expanded hover → UP chevron (/\): mirror of the above */
   #hw-v4-pill.hw-v4-expanded:hover .hw-v4-toggle::before { transform:rotate(-20deg); }
   #hw-v4-pill.hw-v4-expanded:hover .hw-v4-toggle::after  { transform:rotate(20deg); }
+  /* While the container is animating (.hw-v4-animating set by JS), force
+     the handle bars FLAT with no transition — this overrides any hover
+     bend so the bars are never an actively-transitioning (GPU-promoted)
+     layer during the height tween. A non-promoted handle paints on the
+     same path as the layout-driven border, so it tracks it with no lag.
+     The bend returns the instant the class is removed (on completion). */
+  #hw-v4-pill.hw-v4-animating .hw-v4-toggle::before,
+  #hw-v4-pill.hw-v4-animating .hw-v4-toggle::after {
+    transform:rotate(0deg) !important;
+    transition:none !important;
+  }
   /* The chevron <svg> icon is not used in the grabber design. */
   .hw-v4-chevron { display:none; }
 
@@ -1374,6 +1385,11 @@
     var aggs   = pill.querySelectorAll('.hw-v4-agg');
     var sparks = pill.querySelectorAll('.hw-v4-spark');
 
+    // Suppress the handle's hover-bend for the duration of the tween, so
+    // the bars stay flat + un-transitioned (not GPU-promoted) and track
+    // the layout-driven border with no lag. Removed on completion.
+    pill.classList.add('hw-v4-animating');
+
     // FIRST: head positions + height in the CURRENT (pre-toggle) state.
     var firstTops = v4HeadTops(heads);
     var startH = pill.offsetHeight;
@@ -1381,6 +1397,7 @@
     gsap.set([heads, aggs, sparks], { clearProps: 'transform,opacity' });
 
     var doneCleanup = function () {
+      pill.classList.remove('hw-v4-animating');
       gsap.set(pill, { clearProps: 'height' });
       gsap.set([heads, aggs, sparks], { clearProps: 'transform,opacity' });
     };
