@@ -307,11 +307,13 @@ def _v4_row(metric, label):
 V4 = f'''
 <div id="hw-v4-wrap" style="display:none;">
   <div id="hw-v4-pill" class="hw-v4-collapsed" onclick="hwToggleV4(event)">
-    <span class="hw-v4-head-live">{badges("hw-v4")}</span>
-    <div class="hw-v4-rows">
-      {_v4_row("gpu-util", "GPU")}
-      {_v4_row("gpu-mem",  "MEM")}
-      {_v4_row("cpu-util", "CPU")}
+    <div class="hw-v4-clip">
+      <span class="hw-v4-head-live">{badges("hw-v4")}</span>
+      <div class="hw-v4-rows">
+        {_v4_row("gpu-util", "GPU")}
+        {_v4_row("gpu-mem",  "MEM")}
+        {_v4_row("cpu-util", "CPU")}
+      </div>
     </div>
     <button onclick="hwToggleV4(event)" id="hw-v4-toggle" class="hw-v4-toggle" title="Expand">
       <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="hw-v4-chevron">
@@ -717,32 +719,35 @@ STYLE = '''
      card's right border. Only LEFT + BOTTOM borders are drawn — the
      L-carve. Background matches the log content area so the region
      blends in (minimal visual weight; only the L-borders define it). */
+  /* The PILL is now a bare positioning wrapper (no chrome). Its visual
+     box — border, bg, padding, clip — lives on the inner .hw-v4-clip so
+     the reveal can be done with clip-path (GPU) while the handle, a
+     direct child of the pill, sits OUTSIDE the clip and is never
+     clipped. overflow:visible so the floating handle shows. */
   #hw-v4-pill {
     position:absolute;
     /* top set inline by attachV4 = logs header strip height */
     right:0; z-index:10;
     box-sizing:border-box;
-    /* overflow VISIBLE so the grabber handle can float BELOW the
-       container's bottom border (outside the carve). The pill's own
-       rounded corner still clips its border+bg; only children escape. */
     overflow:visible;
-    /* VERTICAL stack: 3 metric rows stacked top→bottom in BOTH states.
-       10px padding all sides; 10px gap between rows. Single padding +
-       gap token = 10. Width is LOCKED to a constant value so the rows
-       stay at exactly the same x in collapsed AND expanded. Without
-       this, expanding makes the sparkline force the pill wider, which
-       pushes every row leftward (pill is right-anchored). */
-    width:172px;
+    width:172px;            /* locked width — rows hold their x */
+    cursor:pointer; user-select:none;
+  }
+  /* The visual carve: chrome + the clip-path reveal. clip-path is a
+     COMPOSITED (GPU) property, so animating it stays on the same path as
+     the content transforms and the handle transform — everything moves
+     in lockstep, no layout-vs-GPU slip. */
+  .hw-v4-clip {
+    box-sizing:border-box;
     display:flex; flex-direction:column;
     gap:10px; padding:10px;
     background:rgb(249 250 251);               /* gray-50 (log content bg) */
     border-left:1px solid rgb(229 231 235);    /* gray-200 */
     border-bottom:1px solid rgb(229 231 235);
     border-bottom-left-radius:8px;
-    cursor:pointer; user-select:none;
-    transition:height .3s cubic-bezier(0.4,0,0.2,1);
+    /* clip-path inset is set inline by JS during the tween; none at rest. */
   }
-  :where(.dark) #hw-v4-pill {
+  :where(.dark) .hw-v4-clip {
     background:rgb(17 24 39);                  /* gray-900 */
     border-left-color:rgb(31 41 55);           /* gray-800 */
     border-bottom-color:rgb(31 41 55);
@@ -1426,11 +1431,19 @@ SCRIPT = '''
     var t = []; heads.forEach(function (h) { t.push(h.getBoundingClientRect().top); });
     return t;
   }
+  // ALL-GPU expand/collapse. The reveal is a clip-path inset on
+  // .hw-v4-clip (compositor), the content morph is transforms, and the
+  // handle tracks the clip edge via transform — every animated property
+  // is composited, so there is NO layout-vs-GPU slip: border, content,
+  // and handle all move in lockstep. The pill stays at its EXPANDED size
+  // for the whole tween (no height animation); clip-path + transforms
+  // create the collapsed appearance.
   window.hwToggleV4 = function (ev) {
     if (ev) ev.stopPropagation();
     var pill = document.getElementById('hw-v4-pill');
+    var clip = pill && pill.querySelector('.hw-v4-clip');
     var btn  = document.getElementById('hw-v4-toggle');
-    if (!pill) return;
+    if (!pill || !clip) return;
     var willExpand = !v4Expanded;
     if (btn) btn.title = willExpand ? 'Collapse' : 'Expand';
 
@@ -1447,87 +1460,70 @@ SCRIPT = '''
     var heads  = pill.querySelectorAll('.hw-v4-row-head');
     var aggs   = pill.querySelectorAll('.hw-v4-agg');
     var sparks = pill.querySelectorAll('.hw-v4-spark');
+    var ROUND  = ' round 0px 0px 0px 8px';           // preserve the carve radius
+    var FULL   = 'inset(0px 0px 0px 0px' + ROUND + ')';
 
-    // Suppress the handle's hover-bend for the duration of the tween, so
-    // the bars stay flat + un-transitioned (not GPU-promoted) and track
-    // the layout-driven border with no lag. Removed on completion.
-    pill.classList.add('hw-v4-animating');
+    // Measure both layouts. End in EXPANDED layout for the tween; the
+    // collapsed look is produced by clip-path + transforms.
+    gsap.set([heads, aggs, sparks, btn], { clearProps: 'transform,opacity' });
+    gsap.set(clip, { clearProps: 'clipPath' });
+    pill.classList.add('hw-v4-collapsed'); pill.classList.remove('hw-v4-expanded');
+    applyState(currentState);
+    var collapsedH = clip.offsetHeight;
+    var collapsedTops = v4HeadTops(heads);
+    pill.classList.add('hw-v4-expanded'); pill.classList.remove('hw-v4-collapsed');
+    applyState(currentState);
+    var expandedTops = v4HeadTops(heads);
+    var hidden = clip.offsetHeight - collapsedH;     // px clipped off the bottom for the collapsed look
+    var COLLAPSED_CLIP = 'inset(0px 0px ' + hidden + 'px 0px' + ROUND + ')';
+    var headDelta = [];                              // collapsed - expanded (heads pulled compact)
+    heads.forEach(function (h, i) { headDelta[i] = collapsedTops[i] - expandedTops[i]; });
 
-    // FIRST: head positions + height in the CURRENT (pre-toggle) state.
-    var firstTops = v4HeadTops(heads);
-    var startH = pill.offsetHeight;
-    // Clear residual inline props from a prior animation (clean measure).
-    gsap.set([heads, aggs, sparks], { clearProps: 'transform,opacity' });
-
-    var doneCleanup = function () {
-      pill.classList.remove('hw-v4-animating');
-      gsap.set(pill, { clearProps: 'height' });
-      gsap.set([heads, aggs, sparks], { clearProps: 'transform,opacity' });
+    // Promote the animated elements for the duration (removed on cleanup).
+    gsap.set(clip, { willChange: 'clip-path' });
+    gsap.set([heads, sparks, btn], { willChange: 'transform' });
+    var cleanup = function () {
+      gsap.set(clip, { clearProps: 'clipPath,willChange' });
+      gsap.set([heads, aggs, sparks, btn], { clearProps: 'transform,opacity,willChange' });
     };
 
     if (willExpand) {
-      // LAST: commit expanded layout + content, measure target geometry.
       v4Expanded = true;
-      pill.classList.add('hw-v4-expanded');
-      pill.classList.remove('hw-v4-collapsed');
-      applyState(currentState);
-      gsap.set(pill, { height: 'auto' });
-      var endH = pill.offsetHeight;
-      var lastTops = v4HeadTops(heads);
-
-      // INVERT: container small, heads at collapsed pos, tags below masks,
-      // graphs flat.
-      gsap.set(pill, { height: startH });
-      heads.forEach(function (h, i) { gsap.set(h, { y: firstTops[i] - lastTops[i] }); });
+      // START: collapsed appearance.
+      gsap.set(clip,   { clipPath: COLLAPSED_CLIP });
+      heads.forEach(function (h, i) { gsap.set(h, { y: headDelta[i] }); });
       gsap.set(aggs,   { yPercent: 130 });
       gsap.set(sparks, { scaleY: 0 });
-
-      // PLAY -- beats kept in ORDER but heavily overlapped with OUT-eases
-      // so the whole thing reads as one continuous, smooth expansion
-      // (no stall-then-rush). Container leads; heads/tags/graphs cascade
-      // in just behind it and all settle together.
-      // Container: 300ms, starts immediately (no lag). Content cascades
-      // in just behind it and settles together.
-      v4Tl = gsap.timeline({ defaults: { ease: 'power2.out' }, onComplete: doneCleanup });
-      v4Tl.to(pill,   { height: endH, duration: 0.30 }, 0.00)                       // 1 container (300ms, no lag)
-          .to(heads,  { y: 0, duration: 0.30 }, 0.04)                              // 2 heads glide
-          .to(aggs,   { yPercent: 0, duration: 0.24, stagger: 0.03 }, 0.10)        // 3 tag rises
-          .to(sparks, { scaleY: 1, duration: 0.26, stagger: 0.04 }, 0.12);        // 4 graph grows
+      gsap.set(btn,    { y: -hidden });              // handle at the collapsed clip edge
+      // PLAY: reveal + morph, all composited, in one continuous motion.
+      v4Tl = gsap.timeline({ defaults: { ease: 'power2.out' }, onComplete: cleanup });
+      v4Tl.to(clip,   { clipPath: FULL, duration: 0.34 }, 0.00)        // 1 container reveal
+          .to(btn,    { y: 0, duration: 0.34 }, 0.00)                  //   handle tracks edge (locked)
+          .to(heads,  { y: 0, duration: 0.32 }, 0.04)                 // 2 heads glide
+          .to(aggs,   { yPercent: 0, duration: 0.26, stagger: 0.03 }, 0.10) // 3 tag rises
+          .to(sparks, { scaleY: 1, duration: 0.28, stagger: 0.04 }, 0.12); // 4 graph grows
     } else {
-      // COLLAPSE -- keep expanded layout (content stays animatable),
-      // measure the collapsed target, run reverse beats, commit collapsed
-      // class on completion only.
-      pill.classList.remove('hw-v4-expanded');
-      pill.classList.add('hw-v4-collapsed');
-      gsap.set(pill, { height: 'auto' });
-      var endHcol = pill.offsetHeight;
-      var collapsedTops = v4HeadTops(heads);
-      pill.classList.add('hw-v4-expanded');
-      pill.classList.remove('hw-v4-collapsed');
-      gsap.set(pill, { height: startH });
-      var dyCol = [];
-      heads.forEach(function (h, i) { dyCol[i] = collapsedTops[i] - firstTops[i]; });
+      v4Expanded = false;
+      // START: full (expanded) appearance.
+      gsap.set(clip,   { clipPath: FULL });
+      heads.forEach(function (h) { gsap.set(h, { y: 0 }); });
       gsap.set(aggs,   { yPercent: 0 });
       gsap.set(sparks, { scaleY: 1 });
-
-      v4Expanded = false;
-      // Reverse order, overlapped with IN-eases so content gathers up
-      // and the container closes in one continuous motion.
+      gsap.set(btn,    { y: 0 });
+      // PLAY: reverse order; commit the collapsed REST layout on complete.
       v4Tl = gsap.timeline({
         defaults: { ease: 'power2.in' },
         onComplete: function () {
-          pill.classList.remove('hw-v4-expanded');
-          pill.classList.add('hw-v4-collapsed');
+          pill.classList.add('hw-v4-collapsed'); pill.classList.remove('hw-v4-expanded');
           applyState(currentState);
-          doneCleanup();
+          cleanup();
         }
       });
-      // Container shrinks IMMEDIATELY (offset 0, 300ms) — no lag. Content
-      // animates out concurrently underneath the closing box.
-      v4Tl.to(pill,   { height: endHcol, duration: 0.30 }, 0.00)                    // 1' container (300ms, no lag)
-          .to(sparks, { scaleY: 0, duration: 0.22, stagger: 0.03 }, 0.00)          // 4' graph shrinks
-          .to(aggs,   { yPercent: 130, duration: 0.20, stagger: 0.03 }, 0.04)      // 3' tag sinks
-          .to(heads,  { y: function (i) { return dyCol[i]; }, duration: 0.26 }, 0.04); // 2' heads glide back
+      v4Tl.to(clip,   { clipPath: COLLAPSED_CLIP, duration: 0.34 }, 0.00) // 1' container close
+          .to(btn,    { y: -hidden, duration: 0.34 }, 0.00)              //   handle tracks edge (locked)
+          .to(sparks, { scaleY: 0, duration: 0.24, stagger: 0.03 }, 0.00)// 4' graph shrinks
+          .to(aggs,   { yPercent: 130, duration: 0.22, stagger: 0.03 }, 0.04) // 3' tag sinks
+          .to(heads,  { y: function (i) { return headDelta[i]; }, duration: 0.30 }, 0.04); // 2' heads glide back
     }
   };
   function attachV4() {
