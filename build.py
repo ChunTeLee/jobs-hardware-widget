@@ -758,8 +758,13 @@ STYLE = '''
      the pill) toggles. The button is an invisible hit area; the visible
      bar is its ::before pseudo-element. */
   #hw-v4-pill .hw-v4-toggle {
-    position:absolute; left:50%; bottom:-15px; transform:translateX(-50%);
-    width:48px; height:14px; padding:0; margin:0;
+    /* Centre with margin-left (pure layout) instead of
+       transform:translateX(-50%). A transform would promote the button
+       to its own compositor layer, whose position lags the layout-driven
+       `bottom` by a frame during the height animation — making the handle
+       trail the moving border. width 48 → margin-left -24 centres it. */
+    position:absolute; left:50%; bottom:-15px; margin-left:-24px;
+    width:48px; height:14px; padding:0;
     border:none; background:transparent; cursor:pointer;
   }
   /* The grabber is TWO halves (::before = left, ::after = right) that
