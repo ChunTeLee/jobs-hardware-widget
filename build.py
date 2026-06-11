@@ -886,6 +886,22 @@ STYLE = '''
   }
   :where(.dark) .hw-v4-val { color:#d1d5db; }
   .hw-v4-spark { height:30px; }
+
+  /* MOBILE (<768) — span the FULL logs-card width and lay the three
+     metrics out HORIZONTALLY (side by side) instead of the vertical
+     stack. Collapsed = one full-width row of 3 metric heads. Expanded =
+     3 columns, each metric head with its sparkline below. The clip-path
+     reveal still works (reveals the sparkline band below the heads). */
+  @media (max-width:767.98px) {
+    #hw-v4-pill { left:0; right:0; width:auto; }     /* full card width */
+    /* metrics side by side, evenly spread */
+    .hw-v4-rows { flex-direction:row; gap:14px; }
+    .hw-v4-expanded .hw-v4-rows { gap:14px; }        /* same gap both states */
+    .hw-v4-row { flex:1 1 0; min-width:0; }          /* equal columns */
+    /* the value can wrap tight; keep label+value on the head line */
+    .hw-v4-row-head { gap:5px; }
+    .hw-v4-row-spacer { display:none; }              /* value sits right after label */
+  }
 </style>'''
 
 SCRIPT = '''
