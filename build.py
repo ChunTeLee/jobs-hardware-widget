@@ -1497,11 +1497,11 @@ SCRIPT = '''
       gsap.set(btn,    { y: -hidden });              // handle at the collapsed clip edge
       // PLAY: reveal + morph, all composited, in one continuous motion.
       v4Tl = gsap.timeline({ defaults: { ease: 'power2.out' }, onComplete: cleanup });
-      v4Tl.to(clip,   { clipPath: FULL, duration: 0.34 }, 0.00)        // 1 container reveal
-          .to(btn,    { y: 0, duration: 0.34 }, 0.00)                  //   handle tracks edge (locked)
-          .to(heads,  { y: 0, duration: 0.32 }, 0.04)                 // 2 heads glide
-          .to(aggs,   { yPercent: 0, duration: 0.26, stagger: 0.03 }, 0.10) // 3 tag rises
-          .to(sparks, { scaleY: 1, duration: 0.28, stagger: 0.04 }, 0.12); // 4 graph grows
+      v4Tl.to(clip,   { clipPath: FULL, duration: 0.15 }, 0.00)        // 1 container reveal (150ms)
+          .to(btn,    { y: 0, duration: 0.15 }, 0.00)                  //   handle tracks edge (locked)
+          .to(heads,  { y: 0, duration: 0.15 }, 0.02)                 // 2 heads glide
+          .to(aggs,   { yPercent: 0, duration: 0.12, stagger: 0.02 }, 0.05) // 3 tag rises
+          .to(sparks, { scaleY: 1, duration: 0.13, stagger: 0.02 }, 0.06); // 4 graph grows
     } else {
       v4Expanded = false;
       // START: full (expanded) appearance.
@@ -1519,11 +1519,11 @@ SCRIPT = '''
           cleanup();
         }
       });
-      v4Tl.to(clip,   { clipPath: COLLAPSED_CLIP, duration: 0.34 }, 0.00) // 1' container close
-          .to(btn,    { y: -hidden, duration: 0.34 }, 0.00)              //   handle tracks edge (locked)
-          .to(sparks, { scaleY: 0, duration: 0.24, stagger: 0.03 }, 0.00)// 4' graph shrinks
-          .to(aggs,   { yPercent: 130, duration: 0.22, stagger: 0.03 }, 0.04) // 3' tag sinks
-          .to(heads,  { y: function (i) { return headDelta[i]; }, duration: 0.30 }, 0.04); // 2' heads glide back
+      v4Tl.to(clip,   { clipPath: COLLAPSED_CLIP, duration: 0.15 }, 0.00) // 1' container close (150ms)
+          .to(btn,    { y: -hidden, duration: 0.15 }, 0.00)              //   handle tracks edge (locked)
+          .to(sparks, { scaleY: 0, duration: 0.12, stagger: 0.02 }, 0.00)// 4' graph shrinks
+          .to(aggs,   { yPercent: 130, duration: 0.11, stagger: 0.02 }, 0.02) // 3' tag sinks
+          .to(heads,  { y: function (i) { return headDelta[i]; }, duration: 0.15 }, 0.02); // 2' heads glide back
     }
   };
   function attachV4() {
