@@ -323,6 +323,43 @@ V4 = f'''
   </div>
 </div>'''
 
+# Version 5 — "Side Pill". A true CAPSULE (border-radius 9999) docked at
+# the inner RIGHT edge of the logs container, below the header strip.
+# Collapsed: per metric, just the coloured dot + a SHORT percentage —
+# the most minimal at-a-glance form (MEM shows percent-of-capacity; the
+# OOM signal is a ratio anyway). Expanded: grows LEFTWARD + DOWN from
+# the fixed right anchor into a detail card (label + agg + full value +
+# sparkline). Vertical grabber handle floats off the pill's LEFT edge
+# (its open edge), bending < / > on hover.
+def _v5_row(metric, label):
+    return f'''
+      <div class="hw-v5-row" data-metric="{metric}">
+        <div class="hw-v5-row-head">
+          <span id="hw-v5-{metric}-dot" class="hw-v5-dot"></span>
+          <span class="hw-v5-row-label">{label}</span>
+          <span class="hw-v5-row-spacer"></span>
+          <span class="hw-v5-agg-mask"><span id="hw-v5-{metric}-agg" class="hw-v5-agg"></span></span>
+          <span id="hw-v5-{metric}-val" class="hw-v5-val">&mdash;</span>
+          <span id="hw-v5-{metric}-val-short" class="hw-v5-val-short">&mdash;</span>
+        </div>
+        <div class="hw-v5-spark hw-spark-track">
+          <svg id="hw-v5-{metric}-svg" width="100%" height="30" viewBox="0 0 100 30" preserveAspectRatio="none" style="display:block;"></svg>
+        </div>
+      </div>'''
+
+V5 = f'''
+<div id="hw-v5-wrap" style="display:none;">
+  <div id="hw-v5-pill" class="hw-v5-collapsed" onclick="hwToggleV5(event)">
+    <span class="hw-v5-head-live">{badges("hw-v5")}</span>
+    <div class="hw-v5-rows">
+      {_v5_row("gpu-util", "GPU")}
+      {_v5_row("gpu-mem",  "MEM")}
+      {_v5_row("cpu-util", "CPU")}
+    </div>
+    <button onclick="hwToggleV5(event)" id="hw-v5-toggle" class="hw-v5-toggle" title="Expand"></button>
+  </div>
+</div>'''
+
 # Two-tier prototype control: version selector (primary) -> state toggle
 # (secondary, collapsed until a version is chosen).
 CONTROL = '''
@@ -341,6 +378,7 @@ CONTROL = '''
   <!-- Segmented control: mutually-exclusive version choice -->
   <div style="display:flex;background:#161b22;border:1px solid #30363d;
               border-radius:8px;padding:3px;gap:3px;">
+    <button onclick="hwSetVersion('v5')" id="hw-ver-v5" class="hw-seg" style="flex:1;">Side Pill</button>
     <button onclick="hwSetVersion('v4')" id="hw-ver-v4" class="hw-seg" style="flex:1;">Nested</button>
     <button onclick="hwSetVersion('v3')" id="hw-ver-v3" class="hw-seg" style="flex:1;display:none;">Dropdown Pill</button>
     <button onclick="hwSetVersion('v2')" id="hw-ver-v2" class="hw-seg" style="flex:1;display:none;">Trend</button>
@@ -886,16 +924,115 @@ STYLE = '''
   }
   :where(.dark) .hw-v4-val { color:#d1d5db; }
   .hw-v4-spark { height:30px; }
+
+  /* ── V5 Side Pill — capsule docked at logs' inner right edge ────────── */
+  /* Collapsed: a TRUE pill (border-radius 9999) holding dot + short %
+     per metric. Expanded: grows leftward + down from the FIXED right
+     anchor into a detail card (radius eases to 12). Chrome per skill
+     section 3: page bg + logs-card border colour + soft lift shadow. */
+  #hw-v5-pill {
+    position:absolute;
+    /* top set inline by attachV5 = logs header strip height + 10 */
+    right:10px; z-index:10;
+    box-sizing:border-box; overflow:visible;
+    display:flex; flex-direction:column;
+    gap:10px; padding:10px;                     /* V-MAJOR tokens */
+    background:#fff;
+    border:1px solid rgb(229 231 235);          /* gray-200 = card border */
+    border-radius:9999px;                       /* capsule */
+    box-shadow:0 4px 14px rgba(0,0,0,.12);
+    cursor:pointer; user-select:none;
+  }
+  :where(.dark) #hw-v5-pill {
+    background:rgb(3 7 18);                     /* gray-950 = page bg */
+    border-color:rgb(31 41 55);                 /* gray-800 */
+    box-shadow:0 4px 14px rgba(0,0,0,.35);
+  }
+  #hw-v5-pill.hw-v5-expanded { border-radius:12px; width:172px; }
+  #hw-v5-pill .hw-v5-head-live { display:none; }  /* dots carry status */
+  .hw-v5-rows { display:flex; flex-direction:column; gap:10px; width:100%; }
+  .hw-v5-expanded .hw-v5-rows { gap:15px; }
+  .hw-v5-row { display:flex; flex-direction:column; gap:5px; }   /* V-INNER */
+  .hw-v5-row-head { display:flex; flex-direction:row; align-items:center; gap:6px; } /* CHIP */
+  .hw-v5-row-spacer { flex:1; }
+  .hw-v5-agg-mask { overflow:hidden; }
+  /* COLLAPSED — dot + short % only. Capsule hugs content. */
+  .hw-v5-collapsed .hw-v5-row-label { display:none; }
+  .hw-v5-collapsed .hw-v5-row-spacer { display:none; }
+  .hw-v5-collapsed .hw-v5-agg-mask { display:none; }
+  .hw-v5-collapsed .hw-v5-val { display:none; }
+  .hw-v5-collapsed .hw-v5-spark { display:none; }
+  /* EXPANDED — full detail; short % hides, label/agg/val/spark show. */
+  .hw-v5-expanded .hw-v5-val-short { display:none; }
+  .hw-v5-expanded .hw-v5-agg-mask { display:inline-flex; }
+  .hw-v5-expanded .hw-v5-spark { display:block; }
+  /* Shared chrome (V4 parity) */
+  .hw-v5-dot { width:8px; height:8px; border-radius:9999px; background:#6e7681; flex-shrink:0; }
+  .hw-v5-row-label {
+    font-size:12px; color:#8b949e; font-weight:600;
+    text-transform:uppercase; letter-spacing:.05em;
+  }
+  .hw-v5-agg {
+    font-size:10px; font-weight:600; letter-spacing:.07em;
+    text-transform:uppercase; color:#8b949e;
+  }
+  .hw-v5-val, .hw-v5-val-short {
+    font-size:12px; color:#374151; font-weight:500;
+    font-variant-numeric:tabular-nums; white-space:nowrap;
+  }
+  :where(.dark) .hw-v5-val, :where(.dark) .hw-v5-val-short { color:#d1d5db; }
+  .hw-v5-spark { height:20px; transform-origin:50% 100%; }
+  /* HANDLE — the grabber rotated 90°: a vertical bar floating 5px off
+     the pill's LEFT edge (its open edge), vertically centred. Same
+     two-overlapping-halves construction as V4 (no crack at the bend),
+     full opacity, border colour. Hover bends it into < (collapsed =
+     "expand leftward") or > (expanded = "collapse rightward"). */
+  #hw-v5-pill .hw-v5-toggle {
+    position:absolute; left:-15px; top:50%; margin-top:-24px;
+    width:14px; height:48px; padding:0;
+    border:none; background:transparent; cursor:pointer;
+  }
+  #hw-v5-pill .hw-v5-toggle::before,
+  #hw-v5-pill .hw-v5-toggle::after {
+    content:''; position:absolute; left:5px;        /* (14-4)/2 centre */
+    width:4px; height:15px; border-radius:9999px;
+    background:rgb(229 231 235);                    /* gray-200 = border */
+    transform:rotate(0deg);
+    transition:transform .2s ease, background .15s ease;
+  }
+  :where(.dark) #hw-v5-pill .hw-v5-toggle::before,
+  :where(.dark) #hw-v5-pill .hw-v5-toggle::after { background:rgb(31 41 55); }
+  /* halves overlap 4px at centre (11-26 / 22-37), pivot at OUTER tips */
+  #hw-v5-pill .hw-v5-toggle::before { top:11px; transform-origin:50% 0%; }   /* pivot top tip */
+  #hw-v5-pill .hw-v5-toggle::after  { top:22px; transform-origin:50% 100%; } /* pivot bottom tip */
+  #hw-v5-pill:hover .hw-v5-toggle::before,
+  #hw-v5-pill:hover .hw-v5-toggle::after { background:rgb(156 163 175); }
+  :where(.dark) #hw-v5-pill:hover .hw-v5-toggle::before,
+  :where(.dark) #hw-v5-pill:hover .hw-v5-toggle::after { background:rgb(75 85 99); }
+  /* collapsed hover → < (centre swings LEFT, tips fixed) */
+  #hw-v5-pill.hw-v5-collapsed:hover .hw-v5-toggle::before { transform:rotate(-20deg); }
+  #hw-v5-pill.hw-v5-collapsed:hover .hw-v5-toggle::after  { transform:rotate(20deg); }
+  /* expanded hover → > (mirror) */
+  #hw-v5-pill.hw-v5-expanded:hover .hw-v5-toggle::before { transform:rotate(20deg); }
+  #hw-v5-pill.hw-v5-expanded:hover .hw-v5-toggle::after  { transform:rotate(-20deg); }
+  /* While animating, bars flat + no transition (never GPU-promoted →
+     they track the layout-driven pill edge with no lag). */
+  #hw-v5-pill.hw-v5-animating .hw-v5-toggle::before,
+  #hw-v5-pill.hw-v5-animating .hw-v5-toggle::after {
+    transform:rotate(0deg) !important;
+    transition:none !important;
+  }
 </style>'''
 
 SCRIPT = '''
 <script>
 (function () {
   // Which render style each version uses
-  var VSTYLE = { 'hw-v1':'bar', 'hw-v2':'spark', 'hw-v3':'pill', 'hw-v4':'pill' };
-  var PREFIXES = ['hw-v1', 'hw-v2', 'hw-v3', 'hw-v4'];
+  var VSTYLE = { 'hw-v1':'bar', 'hw-v2':'spark', 'hw-v3':'pill', 'hw-v4':'pill', 'hw-v5':'pill' };
+  var PREFIXES = ['hw-v1', 'hw-v2', 'hw-v3', 'hw-v4', 'hw-v5'];
   var v3Expanded = false;
   var v4Expanded = false;
+  var v5Expanded = false;
   var FULL = 40;            // full-run sample count (x-axis denominator)
   var currentState = 'completed';
   var currentVersion = 'v1';
@@ -1100,6 +1237,13 @@ SCRIPT = '''
         // always but only visible (via CSS) when the pill is expanded.
         var dot = document.getElementById(prefix + '-' + m + '-dot');
         if (dot) dot.style.backgroundColor = color;
+        // V5's collapsed capsule shows a SHORT percent-of-scale value
+        // (MEM as % of capacity). Same red-only tint rule as the full val.
+        var shortEl = document.getElementById(prefix + '-' + m + '-val-short');
+        if (shortEl) {
+          shortEl.textContent = Math.round(pct) + '%';
+          shortEl.style.color = (color === RED) ? color : '';
+        }
         renderSpark(prefix, m, sparkSeries, color, sparkMode);
       }
     });
@@ -1558,23 +1702,132 @@ SCRIPT = '''
     if (pill.parentElement !== wrap) wrap.appendChild(pill);
   }
 
+  // V5 Side Pill — capsule docked at logs' inner right edge. FLIP tween
+  // on width/height/border-radius from the FIXED right anchor (capsule
+  // morphs into the detail card growing leftward + down). 150ms. The
+  // handle floats off the pill's left edge; its bend is suppressed
+  // during the tween (hw-v5-animating) so it tracks the layout edge.
+  var v5Tl = null;
+  window.hwToggleV5 = function (ev) {
+    if (ev) ev.stopPropagation();
+    var pill = document.getElementById('hw-v5-pill');
+    var btn  = document.getElementById('hw-v5-toggle');
+    if (!pill) return;
+    var willExpand = !v5Expanded;
+    if (btn) btn.title = willExpand ? 'Collapse' : 'Expand';
+
+    // Fallback: no GSAP -> instant toggle.
+    if (typeof gsap === 'undefined') {
+      v5Expanded = willExpand;
+      pill.classList.toggle('hw-v5-expanded', willExpand);
+      pill.classList.toggle('hw-v5-collapsed', !willExpand);
+      applyState(currentState);
+      return;
+    }
+
+    if (v5Tl) v5Tl.kill();
+    var sparks = pill.querySelectorAll('.hw-v5-spark');
+    var aggs   = pill.querySelectorAll('.hw-v5-agg');
+    pill.classList.add('hw-v5-animating');
+
+    // FIRST: current (possibly mid-tween) geometry.
+    var startW = pill.offsetWidth, startH = pill.offsetHeight;
+    var startR = getComputedStyle(pill).borderTopLeftRadius;
+    gsap.set([sparks, aggs], { clearProps: 'transform,opacity' });
+
+    var cleanup = function () {
+      pill.classList.remove('hw-v5-animating');
+      gsap.set(pill, { clearProps: 'width,height,borderRadius' });
+      gsap.set([sparks, aggs], { clearProps: 'transform,opacity' });
+    };
+
+    if (willExpand) {
+      // LAST: commit expanded layout, measure target, invert, play.
+      v5Expanded = true;
+      pill.classList.add('hw-v5-expanded');
+      pill.classList.remove('hw-v5-collapsed');
+      applyState(currentState);
+      gsap.set(pill, { width: '', height: 'auto' });
+      var endW = pill.offsetWidth, endH = pill.offsetHeight;
+      gsap.set(pill, { width: startW, height: startH, borderRadius: startR });
+      gsap.set(aggs,   { yPercent: 130 });
+      gsap.set(sparks, { scaleY: 0 });
+      v5Tl = gsap.timeline({ defaults: { ease: 'power2.out' }, onComplete: cleanup });
+      v5Tl.to(pill,   { width: endW, height: endH, borderRadius: 12, duration: 0.15 }, 0.00)
+          .to(aggs,   { yPercent: 0, duration: 0.12, stagger: 0.02 }, 0.05)
+          .to(sparks, { scaleY: 1, duration: 0.13, stagger: 0.02 }, 0.06);
+    } else {
+      // Measure collapsed target (brief class flip), restore, play reverse;
+      // commit the collapsed class on completion.
+      pill.classList.remove('hw-v5-expanded');
+      pill.classList.add('hw-v5-collapsed');
+      gsap.set(pill, { width: '', height: 'auto' });
+      var endWc = pill.offsetWidth, endHc = pill.offsetHeight;
+      pill.classList.add('hw-v5-expanded');
+      pill.classList.remove('hw-v5-collapsed');
+      gsap.set(pill, { width: startW, height: startH, borderRadius: startR });
+      gsap.set(aggs,   { yPercent: 0 });
+      gsap.set(sparks, { scaleY: 1 });
+      v5Expanded = false;
+      v5Tl = gsap.timeline({
+        defaults: { ease: 'power2.in' },
+        onComplete: function () {
+          pill.classList.remove('hw-v5-expanded');
+          pill.classList.add('hw-v5-collapsed');
+          applyState(currentState);
+          cleanup();
+        }
+      });
+      v5Tl.to(pill,   { width: endWc, height: endHc, borderRadius: 9999, duration: 0.15 }, 0.00)
+          .to(sparks, { scaleY: 0, duration: 0.12, stagger: 0.02 }, 0.00)
+          .to(aggs,   { yPercent: 130, duration: 0.11, stagger: 0.02 }, 0.02);
+    }
+  };
+  function attachV5() {
+    var pill = document.getElementById('hw-v5-pill');
+    var card = document.getElementById('hw-logs-card');
+    if (!pill || !card) return;
+    if (getComputedStyle(card).position === 'static') {
+      card.style.position = 'relative';
+    }
+    if (pill.parentElement !== card) card.appendChild(pill);
+    // Dock below the "Logs" header strip with a V-MAJOR (10px) gap.
+    var header = card.firstElementChild;
+    if (header) {
+      pill.style.top = Math.round(header.getBoundingClientRect().height + 10) + 'px';
+    }
+    pill.classList.add('hw-v5-collapsed');
+    pill.classList.remove('hw-v5-expanded');
+    v5Expanded = false;
+  }
+  function detachV5() {
+    var pill = document.getElementById('hw-v5-pill');
+    var wrap = document.getElementById('hw-v5-wrap');
+    if (!pill || !wrap) return;
+    pill.classList.remove('hw-v5-expanded');
+    pill.classList.add('hw-v5-collapsed');
+    v5Expanded = false;
+    if (pill.parentElement !== wrap) wrap.appendChild(pill);
+  }
+
   window.hwSetVersion = function (v) {
     currentVersion = v;
-    ['v1', 'v2', 'v3', 'v4'].forEach(function (k) {
+    ['v1', 'v2', 'v3', 'v4', 'v5'].forEach(function (k) {
       var w = document.getElementById('hw-' + k + '-wrap');
       if (w) w.style.display = (k === v) ? '' : 'none';
       var b = document.getElementById('hw-ver-' + k);
       if (b) b.classList.toggle('active', k === v);
     });
-    // hw-v3-wrap and hw-v4-wrap are only mount slots — their pills
-    // live elsewhere when active. Keep wraps display:none so they don't
+    // hw-v3/v4/v5 wraps are only mount slots — their pills live
+    // elsewhere when active. Keep wraps display:none so they don't
     // consume a gap-4 in the page container's flex.
-    var v3wrap = document.getElementById('hw-v3-wrap');
-    if (v3wrap) v3wrap.style.display = 'none';
-    var v4wrap = document.getElementById('hw-v4-wrap');
-    if (v4wrap) v4wrap.style.display = 'none';
+    ['hw-v3-wrap', 'hw-v4-wrap', 'hw-v5-wrap'].forEach(function (id) {
+      var w = document.getElementById(id);
+      if (w) w.style.display = 'none';
+    });
     if (v === 'v3') attachV3(); else detachV3();
     if (v === 'v4') attachV4(); else detachV4();
+    if (v === 'v5') attachV5(); else detachV5();
     // Reveal the contextual state toggle now that a version is active
     document.getElementById('hw-state-tier').classList.add('open');
     applyState(currentState);
@@ -1598,7 +1851,7 @@ SCRIPT = '''
 })();
 </script>'''
 
-HARDWARE_BLOCK = CONTROL + V1 + V2 + V3 + V4 + STYLE + SCRIPT
+HARDWARE_BLOCK = CONTROL + V1 + V2 + V3 + V4 + V5 + STYLE + SCRIPT
 
 # ── 6. Find injection point and splice ────────────────────────────────────────
 print("Finding injection point...")
