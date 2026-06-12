@@ -57,6 +57,7 @@
   <!-- Segmented control: mutually-exclusive version choice -->
   <div style="display:flex;background:#161b22;border:1px solid #30363d;
               border-radius:8px;padding:3px;gap:3px;">
+    <button onclick="hwSetVersion('v6')" id="hw-ver-v6" class="hw-seg" style="flex:1;">Header Pill</button>
     <button onclick="hwSetVersion('v5')" id="hw-ver-v5" class="hw-seg" style="flex:1;">Side Pill</button>
     <button onclick="hwSetVersion('v4')" id="hw-ver-v4" class="hw-seg" style="flex:1;">Nested</button>
     <button onclick="hwSetVersion('v3')" id="hw-ver-v3" class="hw-seg" style="flex:1;display:none;">Dropdown Pill</button>
@@ -358,6 +359,66 @@
       </div>
     </div>
     <button onclick="hwToggleV5(event)" id="hw-v5-toggle" class="hw-v5-toggle" title="Expand"></button>
+  </div>
+</div>
+<div id="hw-v6-wrap" style="display:none;">
+  <div id="hw-v6-pill" class="hw-v6-collapsed" onclick="hwToggleV6(event)">
+    <span class="hw-v6-head-live"><span id="hw-v6-live-badge" style="display:none;align-items:center;">
+        <span style="position:relative;display:inline-flex;width:6px;height:6px;">
+          <span style="position:absolute;display:inline-flex;width:100%;height:100%;border-radius:9999px;background:#22c55e;opacity:.75;animation:hwPing 1.5s cubic-bezier(0,0,.2,1) infinite;"></span>
+          <span style="position:relative;display:inline-flex;width:6px;height:6px;border-radius:9999px;background:#22c55e;"></span>
+        </span>
+      </span>
+      <span id="hw-v6-context-note" style="font-size:11px;color:#6e7681;font-style:italic;"></span></span>
+    <div class="hw-v6-rows">
+      
+      <div class="hw-v6-row" data-metric="gpu-util">
+        <div class="hw-v6-row-head">
+          <span id="hw-v6-gpu-util-dot" class="hw-v6-dot"></span>
+          <span class="hw-v6-row-label">GPU</span>
+          <span class="hw-v6-row-spacer"></span>
+          <span class="hw-v6-agg-mask"><span id="hw-v6-gpu-util-agg" class="hw-v6-agg"></span></span>
+          <span id="hw-v6-gpu-util-val" class="hw-v6-val">&mdash;</span>
+          <span id="hw-v6-gpu-util-val-short" class="hw-v6-val-short">&mdash;</span>
+        </div>
+        <div class="hw-v6-spark hw-spark-track">
+          <svg id="hw-v6-gpu-util-svg" width="100%" height="30" viewBox="0 0 100 30" preserveAspectRatio="none" style="display:block;"></svg>
+        </div>
+      </div>
+      
+      <div class="hw-v6-row" data-metric="gpu-mem">
+        <div class="hw-v6-row-head">
+          <span id="hw-v6-gpu-mem-dot" class="hw-v6-dot"></span>
+          <span class="hw-v6-row-label">MEM</span>
+          <span class="hw-v6-row-spacer"></span>
+          <span class="hw-v6-agg-mask"><span id="hw-v6-gpu-mem-agg" class="hw-v6-agg"></span></span>
+          <span id="hw-v6-gpu-mem-val" class="hw-v6-val">&mdash;</span>
+          <span id="hw-v6-gpu-mem-val-short" class="hw-v6-val-short">&mdash;</span>
+        </div>
+        <div class="hw-v6-spark hw-spark-track">
+          <svg id="hw-v6-gpu-mem-svg" width="100%" height="30" viewBox="0 0 100 30" preserveAspectRatio="none" style="display:block;"></svg>
+        </div>
+      </div>
+      
+      <div class="hw-v6-row" data-metric="cpu-util">
+        <div class="hw-v6-row-head">
+          <span id="hw-v6-cpu-util-dot" class="hw-v6-dot"></span>
+          <span class="hw-v6-row-label">CPU</span>
+          <span class="hw-v6-row-spacer"></span>
+          <span class="hw-v6-agg-mask"><span id="hw-v6-cpu-util-agg" class="hw-v6-agg"></span></span>
+          <span id="hw-v6-cpu-util-val" class="hw-v6-val">&mdash;</span>
+          <span id="hw-v6-cpu-util-val-short" class="hw-v6-val-short">&mdash;</span>
+        </div>
+        <div class="hw-v6-spark hw-spark-track">
+          <svg id="hw-v6-cpu-util-svg" width="100%" height="30" viewBox="0 0 100 30" preserveAspectRatio="none" style="display:block;"></svg>
+        </div>
+      </div>
+    </div>
+    <button onclick="hwToggleV6(event)" id="hw-v6-toggle" class="hw-v6-toggle" title="Expand">
+      <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="hw-v6-chevron">
+        <polyline points="4 6 8 10 12 6"/>
+      </svg>
+    </button>
   </div>
 </div>
 <style>
@@ -897,7 +958,7 @@
     gap:10px; padding:10px;                     /* V-MAJOR tokens */
     background:#fff;
     border:1px solid rgb(229 231 235);          /* gray-200 = card border */
-    border-radius:9999px;                       /* capsule */
+    border-radius:12px;                         /* rounded card (was capsule) */
     box-shadow:0 4px 14px rgba(0,0,0,.12);
     cursor:pointer; user-select:none;
   }
@@ -906,7 +967,7 @@
     border-color:rgb(31 41 55);                 /* gray-800 */
     box-shadow:0 4px 14px rgba(0,0,0,.35);
   }
-  #hw-v5-pill.hw-v5-expanded { border-radius:12px; width:172px; }
+  #hw-v5-pill.hw-v5-expanded { width:172px; }
   #hw-v5-pill .hw-v5-head-live { display:none; }  /* dots carry status */
   .hw-v5-rows { display:flex; flex-direction:column; gap:10px; width:100%; }
   .hw-v5-expanded .hw-v5-rows { gap:15px; }
@@ -914,8 +975,9 @@
   .hw-v5-row-head { display:flex; flex-direction:row; align-items:center; gap:6px; } /* CHIP */
   .hw-v5-row-spacer { flex:1; }
   .hw-v5-agg-mask { overflow:hidden; }
-  /* COLLAPSED — dot + short % only. Capsule hugs content. */
-  .hw-v5-collapsed .hw-v5-row-label { display:none; }
+  /* COLLAPSED — dot + LABEL + short %. The label is what makes three
+     stacked percentages parseable at a glance (dot colour alone was
+     ambiguous). Rounded card hugs content. */
   .hw-v5-collapsed .hw-v5-row-spacer { display:none; }
   .hw-v5-collapsed .hw-v5-agg-mask { display:none; }
   .hw-v5-collapsed .hw-v5-val { display:none; }
@@ -980,15 +1042,93 @@
     transform:rotate(0deg) !important;
     transition:none !important;
   }
+
+  /* ── V6 Header Pill — capsule inside the logs header strip ──────────── */
+  /* A quiet peer of the "Logs" title: compact horizontal capsule,
+     right-aligned in the header strip, faint log-content tint so it
+     reads as chrome rather than content. Expanded: top stays in the
+     header; grows DOWNWARD over the logs into the detail card. */
+  #hw-v6-pill {
+    position:absolute;
+    /* top + right set inline by attachV6 (centred in header strip) */
+    z-index:10;
+    box-sizing:border-box; overflow:hidden;
+    display:flex; flex-direction:row; align-items:center;
+    gap:14px; padding:4px 12px;
+    background:rgb(249 250 251);                /* gray-50 = log content tint */
+    border:1px solid rgb(229 231 235);          /* gray-200 = card border */
+    border-radius:9999px;                       /* horizontal capsule */
+    cursor:pointer; user-select:none;
+  }
+  :where(.dark) #hw-v6-pill {
+    background:rgb(17 24 39);                   /* gray-900 */
+    border-color:rgb(31 41 55);                 /* gray-800 */
+  }
+  #hw-v6-pill.hw-v6-expanded {
+    border-radius:12px;
+    flex-direction:column; align-items:stretch;
+    gap:10px; padding:10px;
+    box-shadow:0 4px 14px rgba(0,0,0,.12);      /* lifts once it overlays logs */
+  }
+  :where(.dark) #hw-v6-pill.hw-v6-expanded { box-shadow:0 4px 14px rgba(0,0,0,.35); }
+  #hw-v6-pill .hw-v6-head-live { display:none; }   /* dots carry status */
+  /* rows: inline chips collapsed; column of detail groups expanded */
+  .hw-v6-rows { display:flex; flex-direction:row; align-items:center; gap:14px; }
+  .hw-v6-expanded .hw-v6-rows { flex-direction:column; align-items:stretch; gap:15px; width:100%; }
+  .hw-v6-row { display:flex; flex-direction:column; gap:5px; min-width:0; }
+  .hw-v6-row-head { display:flex; flex-direction:row; align-items:center; gap:5px; }
+  .hw-v6-row-spacer { flex:1; }
+  .hw-v6-agg-mask { overflow:hidden; }
+  /* COLLAPSED — dot + label + short %; no agg/full val/spark/spacer. */
+  .hw-v6-collapsed .hw-v6-row-spacer { display:none; }
+  .hw-v6-collapsed .hw-v6-agg-mask { display:none; }
+  .hw-v6-collapsed .hw-v6-val { display:none; }
+  .hw-v6-collapsed .hw-v6-spark { display:none; }
+  /* EXPANDED — full detail; short % hides. */
+  .hw-v6-expanded .hw-v6-val-short { display:none; }
+  .hw-v6-expanded .hw-v6-agg-mask { display:inline-flex; }
+  .hw-v6-expanded .hw-v6-spark { display:block; }
+  .hw-v6-expanded .hw-v6-row-head { gap:6px; }
+  /* chevron — at the right end of the capsule; rotates on expand (same
+     hardened pattern: explicit rotate(0) base so it interpolates). */
+  .hw-v6-toggle {
+    display:inline-flex; align-items:center; justify-content:center;
+    border:none; background:transparent; padding:0; margin:0;
+    color:#8b949e; cursor:pointer;
+  }
+  .hw-v6-expanded .hw-v6-toggle { position:absolute; top:10px; right:10px; }
+  .hw-v6-chevron {
+    transform:rotate(0deg);
+    transition:transform .2s ease;
+    transform-origin:50% 50%;
+  }
+  .hw-v6-expanded .hw-v6-chevron { transform:rotate(180deg); }
+  /* Shared chrome (V4/V5 parity) */
+  .hw-v6-dot { width:8px; height:8px; border-radius:9999px; background:#6e7681; flex-shrink:0; }
+  .hw-v6-row-label {
+    font-size:12px; color:#8b949e; font-weight:600;
+    text-transform:uppercase; letter-spacing:.05em;
+  }
+  .hw-v6-agg {
+    font-size:10px; font-weight:600; letter-spacing:.07em;
+    text-transform:uppercase; color:#8b949e;
+  }
+  .hw-v6-val, .hw-v6-val-short {
+    font-size:12px; color:#374151; font-weight:500;
+    font-variant-numeric:tabular-nums; white-space:nowrap;
+  }
+  :where(.dark) .hw-v6-val, :where(.dark) .hw-v6-val-short { color:#d1d5db; }
+  .hw-v6-spark { height:20px; transform-origin:50% 100%; }
 </style>
 <script>
 (function () {
   // Which render style each version uses
-  var VSTYLE = { 'hw-v1':'bar', 'hw-v2':'spark', 'hw-v3':'pill', 'hw-v4':'pill', 'hw-v5':'pill' };
-  var PREFIXES = ['hw-v1', 'hw-v2', 'hw-v3', 'hw-v4', 'hw-v5'];
+  var VSTYLE = { 'hw-v1':'bar', 'hw-v2':'spark', 'hw-v3':'pill', 'hw-v4':'pill', 'hw-v5':'pill', 'hw-v6':'pill' };
+  var PREFIXES = ['hw-v1', 'hw-v2', 'hw-v3', 'hw-v4', 'hw-v5', 'hw-v6'];
   var v3Expanded = false;
   var v4Expanded = false;
   var v5Expanded = false;
+  var v6Expanded = false;
   var FULL = 40;            // full-run sample count (x-axis denominator)
   var currentState = 'completed';
   var currentVersion = 'v1';
@@ -1688,12 +1828,11 @@
 
     // FIRST: current (possibly mid-tween) geometry.
     var startW = pill.offsetWidth, startH = pill.offsetHeight;
-    var startR = getComputedStyle(pill).borderTopLeftRadius;
     gsap.set([sparks, aggs], { clearProps: 'transform,opacity' });
 
     var cleanup = function () {
       pill.classList.remove('hw-v5-animating');
-      gsap.set(pill, { clearProps: 'width,height,borderRadius' });
+      gsap.set(pill, { clearProps: 'width,height' });
       gsap.set([sparks, aggs], { clearProps: 'transform,opacity' });
     };
 
@@ -1705,11 +1844,11 @@
       applyState(currentState);
       gsap.set(pill, { width: '', height: 'auto' });
       var endW = pill.offsetWidth, endH = pill.offsetHeight;
-      gsap.set(pill, { width: startW, height: startH, borderRadius: startR });
+      gsap.set(pill, { width: startW, height: startH });
       gsap.set(aggs,   { yPercent: 130 });
       gsap.set(sparks, { scaleY: 0 });
       v5Tl = gsap.timeline({ defaults: { ease: 'power2.out' }, onComplete: cleanup });
-      v5Tl.to(pill,   { width: endW, height: endH, borderRadius: 12, duration: 0.15 }, 0.00)
+      v5Tl.to(pill,   { width: endW, height: endH, duration: 0.15 }, 0.00)
           .to(aggs,   { yPercent: 0, duration: 0.12, stagger: 0.02 }, 0.05)
           .to(sparks, { scaleY: 1, duration: 0.13, stagger: 0.02 }, 0.06);
     } else {
@@ -1721,7 +1860,7 @@
       var endWc = pill.offsetWidth, endHc = pill.offsetHeight;
       pill.classList.add('hw-v5-expanded');
       pill.classList.remove('hw-v5-collapsed');
-      gsap.set(pill, { width: startW, height: startH, borderRadius: startR });
+      gsap.set(pill, { width: startW, height: startH });
       gsap.set(aggs,   { yPercent: 0 });
       gsap.set(sparks, { scaleY: 1 });
       v5Expanded = false;
@@ -1734,7 +1873,7 @@
           cleanup();
         }
       });
-      v5Tl.to(pill,   { width: endWc, height: endHc, borderRadius: 9999, duration: 0.15 }, 0.00)
+      v5Tl.to(pill,   { width: endWc, height: endHc, duration: 0.15 }, 0.00)
           .to(sparks, { scaleY: 0, duration: 0.12, stagger: 0.02 }, 0.00)
           .to(aggs,   { yPercent: 130, duration: 0.11, stagger: 0.02 }, 0.02);
     }
@@ -1766,24 +1905,135 @@
     if (pill.parentElement !== wrap) wrap.appendChild(pill);
   }
 
+  // V6 Header Pill — capsule inside the logs header strip. Expanded:
+  // top stays in the header, grows DOWNWARD over the logs (width locked
+  // to the collapsed width so the right anchor and chips never shift).
+  // FLIP on height + border-radius, 150ms.
+  var v6Tl = null;
+  window.hwToggleV6 = function (ev) {
+    if (ev) ev.stopPropagation();
+    var pill = document.getElementById('hw-v6-pill');
+    var btn  = document.getElementById('hw-v6-toggle');
+    if (!pill) return;
+    var willExpand = !v6Expanded;
+    if (btn) btn.title = willExpand ? 'Collapse' : 'Expand';
+
+    if (typeof gsap === 'undefined') {
+      v6Expanded = willExpand;
+      pill.classList.toggle('hw-v6-expanded', willExpand);
+      pill.classList.toggle('hw-v6-collapsed', !willExpand);
+      applyState(currentState);
+      return;
+    }
+
+    if (v6Tl) v6Tl.kill();
+    var sparks = pill.querySelectorAll('.hw-v6-spark');
+    var aggs   = pill.querySelectorAll('.hw-v6-agg');
+    var startW = pill.offsetWidth, startH = pill.offsetHeight;
+    var startR = getComputedStyle(pill).borderTopLeftRadius;
+    gsap.set([sparks, aggs], { clearProps: 'transform,opacity' });
+    // Width locked to the collapsed capsule width across BOTH states so
+    // the right anchor + chip x positions hold (content-anchoring rule).
+    var lockedW = pill.dataset.collapsedW ? +pill.dataset.collapsedW : startW;
+    if (!v6Expanded) { lockedW = startW; pill.dataset.collapsedW = startW; }
+
+    var cleanup = function () {
+      gsap.set(pill, { clearProps: 'height,borderRadius' });
+      gsap.set([sparks, aggs], { clearProps: 'transform,opacity' });
+    };
+
+    if (willExpand) {
+      v6Expanded = true;
+      pill.classList.add('hw-v6-expanded');
+      pill.classList.remove('hw-v6-collapsed');
+      applyState(currentState);
+      gsap.set(pill, { width: lockedW, height: 'auto' });
+      var endH = pill.offsetHeight;
+      gsap.set(pill, { height: startH, borderRadius: startR });
+      gsap.set(aggs,   { yPercent: 130 });
+      gsap.set(sparks, { scaleY: 0 });
+      v6Tl = gsap.timeline({ defaults: { ease: 'power2.out' }, onComplete: cleanup });
+      v6Tl.to(pill,   { height: endH, borderRadius: 12, duration: 0.15 }, 0.00)
+          .to(aggs,   { yPercent: 0, duration: 0.12, stagger: 0.02 }, 0.05)
+          .to(sparks, { scaleY: 1, duration: 0.13, stagger: 0.02 }, 0.06);
+    } else {
+      pill.classList.remove('hw-v6-expanded');
+      pill.classList.add('hw-v6-collapsed');
+      gsap.set(pill, { height: 'auto' });
+      var endHc = pill.offsetHeight;
+      pill.classList.add('hw-v6-expanded');
+      pill.classList.remove('hw-v6-collapsed');
+      gsap.set(pill, { height: startH, borderRadius: startR });
+      gsap.set(aggs,   { yPercent: 0 });
+      gsap.set(sparks, { scaleY: 1 });
+      v6Expanded = false;
+      v6Tl = gsap.timeline({
+        defaults: { ease: 'power2.in' },
+        onComplete: function () {
+          pill.classList.remove('hw-v6-expanded');
+          pill.classList.add('hw-v6-collapsed');
+          applyState(currentState);
+          cleanup();
+        }
+      });
+      v6Tl.to(pill,   { height: endHc, borderRadius: 9999, duration: 0.15 }, 0.00)
+          .to(sparks, { scaleY: 0, duration: 0.12, stagger: 0.02 }, 0.00)
+          .to(aggs,   { yPercent: 130, duration: 0.11, stagger: 0.02 }, 0.02);
+    }
+  };
+  function attachV6() {
+    var pill = document.getElementById('hw-v6-pill');
+    var card = document.getElementById('hw-logs-card');
+    if (!pill || !card) return;
+    if (getComputedStyle(card).position === 'static') {
+      card.style.position = 'relative';
+    }
+    if (pill.parentElement !== card) card.appendChild(pill);
+    pill.classList.add('hw-v6-collapsed');
+    pill.classList.remove('hw-v6-expanded');
+    v6Expanded = false;
+    pill.style.width = '';
+    delete pill.dataset.collapsedW;
+    // Centre the capsule vertically in the header strip; align its right
+    // edge with the header's inner padding (px-3 = 12px).
+    var header = card.firstElementChild;
+    if (header) {
+      var hh = header.getBoundingClientRect().height;
+      var ph = pill.offsetHeight;
+      pill.style.top = Math.round((hh - ph) / 2) + 'px';
+      pill.style.right = '12px';
+    }
+  }
+  function detachV6() {
+    var pill = document.getElementById('hw-v6-pill');
+    var wrap = document.getElementById('hw-v6-wrap');
+    if (!pill || !wrap) return;
+    pill.classList.remove('hw-v6-expanded');
+    pill.classList.add('hw-v6-collapsed');
+    v6Expanded = false;
+    pill.style.width = '';
+    if (pill.parentElement !== wrap) wrap.appendChild(pill);
+  }
+
   window.hwSetVersion = function (v) {
     currentVersion = v;
-    ['v1', 'v2', 'v3', 'v4', 'v5'].forEach(function (k) {
+    ['v1', 'v2', 'v3', 'v4', 'v5', 'v6'].forEach(function (k) {
       var w = document.getElementById('hw-' + k + '-wrap');
       if (w) w.style.display = (k === v) ? '' : 'none';
       var b = document.getElementById('hw-ver-' + k);
       if (b) b.classList.toggle('active', k === v);
     });
-    // hw-v3/v4/v5 wraps are only mount slots — their pills live
+    // hw-v3..v6 wraps are only mount slots — their pills live
     // elsewhere when active. Keep wraps display:none so they don't
     // consume a gap-4 in the page container's flex.
-    ['hw-v3-wrap', 'hw-v4-wrap', 'hw-v5-wrap'].forEach(function (id) {
+    ['hw-v3-wrap', 'hw-v4-wrap', 'hw-v5-wrap', 'hw-v6-wrap'].forEach(function (id) {
       var w = document.getElementById(id);
       if (w) w.style.display = 'none';
     });
     if (v === 'v3') attachV3(); else detachV3();
     if (v === 'v4') attachV4(); else detachV4();
     if (v === 'v5') attachV5(); else detachV5();
+    if (v === 'v6') attachV6(); else detachV6();
     // Reveal the contextual state toggle now that a version is active
     document.getElementById('hw-state-tier').classList.add('open');
     applyState(currentState);
