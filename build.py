@@ -356,7 +356,6 @@ V5 = f'''
       {_v5_row("gpu-mem",  "MEM")}
       {_v5_row("cpu-util", "CPU")}
     </div>
-    <button onclick="hwToggleV5(event)" id="hw-v5-toggle" class="hw-v5-toggle" title="Expand"></button>
   </div>
 </div>'''
 
@@ -384,18 +383,14 @@ def _v6_row(metric, label):
 
 V6 = f'''
 <div id="hw-v6-wrap" style="display:none;">
-  <div id="hw-v6-pill" class="hw-v6-collapsed" onclick="hwToggleV6(event)">
+  <div id="hw-v6-pill" class="hw-v6-collapsed" onclick="hwToggleV6(event)" title="Hardware utilization — click to expand">
+    <span class="hw-v6-title">Hardware</span>
     <span class="hw-v6-head-live">{badges("hw-v6")}</span>
     <div class="hw-v6-rows">
       {_v6_row("gpu-util", "GPU")}
       {_v6_row("gpu-mem",  "MEM")}
       {_v6_row("cpu-util", "CPU")}
     </div>
-    <button onclick="hwToggleV6(event)" id="hw-v6-toggle" class="hw-v6-toggle" title="Expand">
-      <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="hw-v6-chevron">
-        <polyline points="4 6 8 10 12 6"/>
-      </svg>
-    </button>
   </div>
 </div>'''
 
@@ -417,12 +412,12 @@ CONTROL = '''
   <!-- Segmented control: mutually-exclusive version choice -->
   <div style="display:flex;background:#161b22;border:1px solid #30363d;
               border-radius:8px;padding:3px;gap:3px;">
-    <button onclick="hwSetVersion('v4')" id="hw-ver-v4" class="hw-seg" style="flex:1;">Nested</button>
-    <button onclick="hwSetVersion('v5')" id="hw-ver-v5" class="hw-seg" style="flex:1;">Side Pill</button>
-    <button onclick="hwSetVersion('v6')" id="hw-ver-v6" class="hw-seg" style="flex:1;">Header Pill</button>
-    <button onclick="hwSetVersion('v3')" id="hw-ver-v3" class="hw-seg" style="flex:1;display:none;">Dropdown Pill</button>
-    <button onclick="hwSetVersion('v2')" id="hw-ver-v2" class="hw-seg" style="flex:1;display:none;">Trend</button>
-    <button onclick="hwSetVersion('v1')" id="hw-ver-v1" class="hw-seg" style="flex:1;display:none;">V1 Bar</button>
+    <button onclick="hwSetVersion('v4')" id="hw-ver-v4" class="hw-seg" style="flex:1;">Corner Panel</button>
+    <button onclick="hwSetVersion('v5')" id="hw-ver-v5" class="hw-seg" style="flex:1;">Floating Card</button>
+    <button onclick="hwSetVersion('v6')" id="hw-ver-v6" class="hw-seg" style="flex:1;">Toolbar</button>
+    <button onclick="hwSetVersion('v3')" id="hw-ver-v3" class="hw-seg" style="flex:1;display:none;">Overlay Pill</button>
+    <button onclick="hwSetVersion('v2')" id="hw-ver-v2" class="hw-seg" style="flex:1;display:none;">Trend Row</button>
+    <button onclick="hwSetVersion('v1')" id="hw-ver-v1" class="hw-seg" style="flex:1;display:none;">Bar Row</button>
   </div>
 
   <!-- Contextual state toggle: hidden/collapsed until a version is active -->
@@ -973,7 +968,7 @@ STYLE = '''
   #hw-v5-pill {
     position:absolute;
     /* top set inline by attachV5 = logs header strip height + 10 */
-    right:10px; z-index:10;
+    right:5px; z-index:10;                    /* 5px margin from card edge */
     box-sizing:border-box; overflow:visible;
     display:flex; flex-direction:column;
     gap:10px; padding:10px;                     /* V-MAJOR tokens */
@@ -1023,46 +1018,10 @@ STYLE = '''
   }
   :where(.dark) .hw-v5-val, :where(.dark) .hw-v5-val-short { color:#d1d5db; }
   .hw-v5-spark { height:20px; transform-origin:50% 100%; }
-  /* HANDLE — the grabber rotated 90°: a vertical bar floating 5px off
-     the pill's LEFT edge (its open edge), vertically centred. Same
-     two-overlapping-halves construction as V4 (no crack at the bend),
-     full opacity, border colour. Hover bends it into < (collapsed =
-     "expand leftward") or > (expanded = "collapse rightward"). */
-  #hw-v5-pill .hw-v5-toggle {
-    position:absolute; left:-15px; top:50%; margin-top:-24px;
-    width:14px; height:48px; padding:0;
-    border:none; background:transparent; cursor:pointer;
-  }
-  #hw-v5-pill .hw-v5-toggle::before,
-  #hw-v5-pill .hw-v5-toggle::after {
-    content:''; position:absolute; left:5px;        /* (14-4)/2 centre */
-    width:4px; height:15px; border-radius:9999px;
-    background:rgb(229 231 235);                    /* gray-200 = border */
-    transform:rotate(0deg);
-    transition:transform .2s ease, background .15s ease;
-  }
-  :where(.dark) #hw-v5-pill .hw-v5-toggle::before,
-  :where(.dark) #hw-v5-pill .hw-v5-toggle::after { background:rgb(31 41 55); }
-  /* halves overlap 4px at centre (11-26 / 22-37), pivot at OUTER tips */
-  #hw-v5-pill .hw-v5-toggle::before { top:11px; transform-origin:50% 0%; }   /* pivot top tip */
-  #hw-v5-pill .hw-v5-toggle::after  { top:22px; transform-origin:50% 100%; } /* pivot bottom tip */
-  #hw-v5-pill:hover .hw-v5-toggle::before,
-  #hw-v5-pill:hover .hw-v5-toggle::after { background:rgb(156 163 175); }
-  :where(.dark) #hw-v5-pill:hover .hw-v5-toggle::before,
-  :where(.dark) #hw-v5-pill:hover .hw-v5-toggle::after { background:rgb(75 85 99); }
-  /* collapsed hover → < (centre swings LEFT, tips fixed) */
-  #hw-v5-pill.hw-v5-collapsed:hover .hw-v5-toggle::before { transform:rotate(-20deg); }
-  #hw-v5-pill.hw-v5-collapsed:hover .hw-v5-toggle::after  { transform:rotate(20deg); }
-  /* expanded hover → > (mirror) */
-  #hw-v5-pill.hw-v5-expanded:hover .hw-v5-toggle::before { transform:rotate(20deg); }
-  #hw-v5-pill.hw-v5-expanded:hover .hw-v5-toggle::after  { transform:rotate(-20deg); }
-  /* While animating, bars flat + no transition (never GPU-promoted →
-     they track the layout-driven pill edge with no lag). */
-  #hw-v5-pill.hw-v5-animating .hw-v5-toggle::before,
-  #hw-v5-pill.hw-v5-animating .hw-v5-toggle::after {
-    transform:rotate(0deg) !important;
-    transition:none !important;
-  }
+  /* No handle — the whole card is the click target; hover ring is the
+     affordance. */
+  #hw-v5-pill:hover { border-color:rgb(209 213 219); }
+  :where(.dark) #hw-v5-pill:hover { border-color:rgb(55 65 81); }
 
   /* ── V6 Header Pill — capsule inside the logs header strip ──────────── */
   /* A quiet peer of the "Logs" title: compact horizontal capsule,
@@ -1120,20 +1079,11 @@ STYLE = '''
   .hw-v6-expanded .hw-v6-agg-mask { display:inline-flex; }
   .hw-v6-expanded .hw-v6-spark { display:block; }
   .hw-v6-expanded .hw-v6-row-head { gap:6px; }
-  /* chevron — at the right end of the capsule; rotates on expand (same
-     hardened pattern: explicit rotate(0) base so it interpolates). */
-  .hw-v6-toggle {
-    display:inline-flex; align-items:center; justify-content:center;
-    border:none; background:transparent; padding:0; margin:0;
-    color:#8b949e; cursor:pointer;
-  }
-  .hw-v6-expanded .hw-v6-toggle { position:absolute; top:10px; right:10px; }
-  .hw-v6-chevron {
-    transform:rotate(0deg);
-    transition:transform .2s ease;
-    transform-origin:50% 50%;
-  }
-  .hw-v6-expanded .hw-v6-chevron { transform:rotate(180deg); }
+  /* No chevron — the leading "Hardware" title says what the chips ARE;
+     hover tint + tooltip say it's interactive. Title matches the page-
+     header metadata label style (12px, muted, no uppercase). Expanded:
+     it becomes the panel's heading. */
+  .hw-v6-title { font-size:12px; color:#8b949e; font-weight:400; white-space:nowrap; }
   /* Shared chrome (V4/V5 parity) */
   .hw-v6-dot { width:8px; height:8px; border-radius:9999px; background:#6e7681; flex-shrink:0; }
   .hw-v6-row-label {
@@ -1922,7 +1872,7 @@ SCRIPT = '''
     // Dock below the "Logs" header strip with a V-MAJOR (10px) gap.
     var header = card.firstElementChild;
     if (header) {
-      pill.style.top = Math.round(header.getBoundingClientRect().height + 10) + 'px';
+      pill.style.top = Math.round(header.getBoundingClientRect().height + 5) + 'px';
     }
     pill.classList.add('hw-v5-collapsed');
     pill.classList.remove('hw-v5-expanded');
