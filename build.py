@@ -1964,6 +1964,14 @@ SCRIPT = '''
           .to(aggs,   { yPercent: 130, duration: 0.11, stagger: 0.02 }, 0.02);
     }
   };
+  // Popover behaviour: clicking anywhere OUTSIDE the expanded Toolbar
+  // panel collapses it. (Clicks inside the pill never reach here —
+  // hwToggleV6 stops propagation.)
+  document.addEventListener('click', function (e) {
+    if (currentVersion !== 'v6' || !v6Expanded) return;
+    var pill = document.getElementById('hw-v6-pill');
+    if (pill && !pill.contains(e.target)) hwToggleV6();
+  });
   function attachV6() {
     var pill = document.getElementById('hw-v6-pill');
     var card = document.getElementById('hw-logs-card');
@@ -1984,7 +1992,7 @@ SCRIPT = '''
       var hh = header.getBoundingClientRect().height;
       var ph = pill.offsetHeight;
       pill.style.top = Math.round((hh - ph) / 2) + 'px';
-      pill.style.right = '12px';
+      pill.style.right = '4px';   /* hug the card's right edge */
     }
   }
   function detachV6() {
